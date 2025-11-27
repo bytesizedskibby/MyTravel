@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plane, Hotel, Map as MapIcon, CalendarIcon } from "lucide-react";
@@ -10,9 +9,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { DestinationCombobox, FlightDestinationCombobox } from "@/components/ui/destination-combobox";
 
 export function BookingForm() {
   const [date, setDate] = useState<Date>();
+  const [hotelDestination, setHotelDestination] = useState<string>("");
+  const [flightFrom, setFlightFrom] = useState<string>("");
+  const [flightTo, setFlightTo] = useState<string>("");
+  const [tourLocation, setTourLocation] = useState<string>("");
 
   return (
     <Card className="w-full shadow-lg border-border/50">
@@ -39,7 +43,11 @@ export function BookingForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="destination">Destination</Label>
-                <Input id="destination" placeholder="Where are you going?" />
+                <DestinationCombobox 
+                  value={hotelDestination}
+                  onValueChange={setHotelDestination}
+                  placeholder="Where are you going?"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Check-in Date</Label>
@@ -102,11 +110,19 @@ export function BookingForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="from">From</Label>
-                <Input id="from" placeholder="City or Airport" />
+                <FlightDestinationCombobox 
+                  variant="from"
+                  value={flightFrom}
+                  onValueChange={setFlightFrom}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="to">To</Label>
-                <Input id="to" placeholder="City or Airport" />
+                <FlightDestinationCombobox 
+                  variant="to"
+                  value={flightTo}
+                  onValueChange={setFlightTo}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Departure</Label>
@@ -136,7 +152,11 @@ export function BookingForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" placeholder="City or Region" />
+                <DestinationCombobox 
+                  value={tourLocation}
+                  onValueChange={setTourLocation}
+                  placeholder="City or Region"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Activity Type</Label>

@@ -12,6 +12,7 @@ import Booking from "@/pages/booking";
 import Blog from "@/pages/blog";
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
+import { AuthProvider } from "@/hooks/use-auth";
 
 function Router() {
   return (
@@ -41,10 +42,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

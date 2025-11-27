@@ -3,7 +3,32 @@ import maldivesImg from "@assets/generated_images/tropical_maldives_beach.png";
 import alpsImg from "@assets/generated_images/swiss_alps_landscape.png";
 import kyotoImg from "@assets/generated_images/kyoto_street_with_cherry_blossoms.png";
 
-export const destinations = [
+// Extended destination interface for display cards with full details
+export interface DestinationDetails {
+  about: string;
+  highlights: string[];
+  bestTime: string;
+  language: string;
+  currency: string;
+}
+
+export interface TravelDestination {
+  id: string;
+  title: string;
+  location: string;
+  image: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  tags: string[];
+  description: string;
+  continent: string;
+  activity: string;
+  coordinates: { lat: number; lng: number };
+  details: DestinationDetails;
+}
+
+export const destinations: TravelDestination[] = [
   {
     id: "1",
     title: "Santorini, Greece",

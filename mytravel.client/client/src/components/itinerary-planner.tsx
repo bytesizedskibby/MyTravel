@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { GripVertical, Clock, DollarSign, Plus, Trash2, MapPin, Calendar, Hourglass } from "lucide-react";
+import { GripVertical, Clock, Plus, Trash2, MapPin, Calendar, Hourglass } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { DestinationCombobox } from "@/components/ui/destination-combobox";
+import { getDestinationById } from "@/lib/destinations";
 
 interface ItineraryItem {
   id: string;
@@ -95,7 +97,7 @@ export function ItineraryPlanner() {
   ]);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<ItineraryItem>>({
+  const [newItem, setNewItem] = useState<Partial<ItineraryItem> & { locationId?: string }>({
     type: "Activity",
     cost: 0
   });
@@ -125,7 +127,17 @@ export function ItineraryPlanner() {
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItem.title || !newItem.duration || !newItem.location) return;
+    
+    // Get location name from destination ID or use the raw location value
+    let locationName = newItem.location || "";
+    if (newItem.locationId) {
+      const destination = getDestinationById(newItem.locationId);
+      if (destination) {
+        locationName = destination.name;
+      }
+    }
+    
+    if (!newItem.title || !newItem.duration || !locationName) return;
 
     const item: ItineraryItem = {
       id: Math.random().toString(36).substr(2, 9),
@@ -133,7 +145,7 @@ export function ItineraryPlanner() {
       type: newItem.type as any,
       duration: newItem.duration,
       travelTime: newItem.travelTime || "0m",
-      location: newItem.location,
+      location: locationName,
       cost: Number(newItem.cost) || 0,
     };
 
@@ -216,12 +228,10 @@ export function ItineraryPlanner() {
 
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
-                <Input 
-                  id="location" 
-                  placeholder="e.g., Paris, France" 
-                  value={newItem.location || ""}
-                  onChange={e => setNewItem({...newItem, location: e.target.value})}
-                  required
+                <DestinationCombobox 
+                  value={newItem.locationId || ""}
+                  onValueChange={(value) => setNewItem({...newItem, locationId: value})}
+                  placeholder="Select a destination"
                 />
               </div>
 

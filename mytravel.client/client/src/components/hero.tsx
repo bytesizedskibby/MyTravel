@@ -1,17 +1,25 @@
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Calendar as CalendarIcon } from "lucide-react";
+import { Search } from "lucide-react";
 import heroImage from "@assets/generated_images/hero_image_of_santorini_sunset.png";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { DestinationCombobox } from "@/components/ui/destination-combobox";
+import { getDestinationById } from "@/lib/destinations";
 
 export function Hero() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDestination, setSelectedDestination] = useState("");
   const [, setLocation] = useLocation();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setLocation(`/destinations?search=${encodeURIComponent(searchQuery)}`);
+    if (selectedDestination) {
+      const destination = getDestinationById(selectedDestination);
+      if (destination) {
+        setLocation(`/destinations?search=${encodeURIComponent(destination.name)}`);
+      }
+    } else {
+      setLocation('/destinations');
+    }
   };
 
   return (
@@ -43,13 +51,12 @@ export function Hero() {
             onSubmit={handleSearch}
             className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full flex flex-col md:flex-row gap-2 shadow-2xl"
           >
-            <div className="flex-1 flex items-center px-4 bg-white rounded-full h-14">
-              <MapPin className="h-5 w-5 text-muted-foreground mr-3" />
-              <Input 
-                className="border-none shadow-none focus-visible:ring-0 bg-transparent h-full text-base text-foreground placeholder:text-muted-foreground"
-                placeholder="Where do you want to go?" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="flex-1 bg-white rounded-full">
+              <DestinationCombobox
+                value={selectedDestination}
+                onValueChange={setSelectedDestination}
+                placeholder="Where do you want to go?"
+                className="h-14 border-none shadow-none rounded-full bg-transparent"
               />
             </div>
             

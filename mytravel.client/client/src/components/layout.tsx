@@ -1,18 +1,37 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, MapPin, User, Globe } from "lucide-react";
+import { Menu, X, MapPin, User, Globe, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
 
   const navItems = [
     { label: "Destinations", href: "/destinations" },
-    { label: "Planner", href: "/planner" },
     { label: "Blog", href: "/blog" },
     { label: "Bookings", href: "/booking" },
   ];
+
+  // Only add Planner if user is logged in
+  if (user) {
+    navItems.splice(1, 0, { label: "Planner", href: "/planner" });
+  }
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans">
@@ -46,14 +65,43 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button size="sm" className="rounded-full px-6">Sign Up</Button>
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>{user.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.name}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    Log in
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm" className="rounded-full px-6">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -79,14 +127,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <div className="pt-4 border-t border-border flex flex-col space-y-2">
-              <Link href="/login">
-                <Button variant="outline" className="w-full justify-start">
-                  Log in
+              {user ? (
+                <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
                 </Button>
-              </Link>
-              <Link href="/login">
-                <Button className="w-full justify-start">Sign Up</Button>
-              </Link>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full justify-start">
+                      Log in
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button className="w-full justify-start">Sign Up</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

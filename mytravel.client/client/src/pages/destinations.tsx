@@ -1,15 +1,15 @@
 import { destinations } from "@/lib/data";
 import { DestinationCard } from "@/components/destination-card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, Map as MapIcon, List } from "lucide-react";
+import { Filter, Map as MapIcon, List } from "lucide-react";
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { DestinationCombobox } from "@/components/ui/destination-combobox";
 
 // Fix for Leaflet icons
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -27,6 +27,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 export default function Destinations() {
   const [priceRange, setPriceRange] = useState([5000]); // MYR
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [searchDestination, setSearchDestination] = useState<string>("");
 
   // Fix map rendering issues when switching tabs
   useEffect(() => {
@@ -64,9 +65,13 @@ export default function Destinations() {
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar Filters */}
         <aside className="w-full lg:w-64 space-y-8 h-fit sticky top-24 z-10">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search places..." className="pl-9" />
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Search Destination</Label>
+            <DestinationCombobox 
+              value={searchDestination}
+              onValueChange={setSearchDestination}
+              placeholder="Search places..."
+            />
           </div>
 
           <div>

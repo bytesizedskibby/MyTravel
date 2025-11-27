@@ -25,16 +25,6 @@ export default function Booking() {
             </ul>
           </div>
         </div>
-
-        <div className="hidden lg:block sticky top-24">
-          <div className="rounded-2xl overflow-hidden shadow-2xl border border-border">
-            <img src={mapImage} alt="World Map" className="w-full h-auto object-cover bg-muted" />
-            <div className="p-4 bg-card">
-              <h3 className="font-serif font-bold text-lg">Interactive Map</h3>
-              <p className="text-sm text-muted-foreground">Explore destinations and visualize your route.</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

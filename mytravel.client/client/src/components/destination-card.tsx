@@ -2,8 +2,10 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import type { TravelDestination } from "@/lib/data";
 
-export interface DestinationProps {
+// Simple props interface for the card display
+export interface DestinationCardProps {
   id: string;
   title: string;
   location: string;
@@ -15,7 +17,7 @@ export interface DestinationProps {
   description: string;
 }
 
-export function DestinationCard({ destination }: { destination: DestinationProps }) {
+export function DestinationCard({ destination }: { destination: DestinationCardProps | TravelDestination }) {
   return (
     <Card className="group overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col bg-card">
       <div className="relative h-64 overflow-hidden">

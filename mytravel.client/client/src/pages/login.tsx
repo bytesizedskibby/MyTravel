@@ -1,18 +1,89 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
-import { Globe } from "lucide-react";
+import { Globe, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { user, loginMutation, registerMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState("login");
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Login State
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  // Register State
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+
+  // Forgot Password State
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false); // true if code sent
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login
-    setLocation("/");
+    loginMutation.mutate({ email: loginEmail, password: loginPassword });
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    registerMutation.mutate({ email: registerEmail, password: registerPassword });
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsForgotLoading(true);
+    try {
+      await apiRequest("POST", "/api/forgotPassword", { email: forgotEmail });
+      toast({ title: "Code sent", description: "Check your email (or server console) for the reset code." });
+      setIsResetting(true);
+    } catch (error: any) {
+      toast({ 
+        title: "Request failed", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsForgotLoading(true);
+    try {
+      await apiRequest("POST", "/api/resetPassword", { email: forgotEmail, resetCode, newPassword });
+      toast({ title: "Password reset", description: "You can now login with your new password." });
+      setIsResetting(false);
+      setActiveTab("login");
+      setLoginEmail(forgotEmail);
+    } catch (error: any) {
+      toast({ 
+        title: "Reset failed", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   return (
@@ -32,59 +103,146 @@ export default function Login() {
 
         <Card className="shadow-xl border-border/50">
           <CardContent className="pt-6">
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Sign Up</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="you@example.com" required />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="you@example.com" 
+                      required 
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
-                      <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>
+                      <button 
+                        type="button" 
+                        onClick={() => setActiveTab("forgot")}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
                     </div>
-                    <Input id="password" type="password" required />
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      required 
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                    />
                   </div>
-                  <Button type="submit" className="w-full" size="lg">Sign In</Button>
-                  
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" type="button">Google</Button>
-                    <Button variant="outline" type="button">Facebook</Button>
-                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={loginMutation.isPending}>
+                    {loginMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Sign In
+                  </Button>
                 </form>
               </TabsContent>
 
               <TabsContent value="register">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="John Doe" required />
-                  </div>
+                <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="reg-email">Email</Label>
-                    <Input id="reg-email" type="email" placeholder="you@example.com" required />
+                    <Input 
+                      id="reg-email" 
+                      type="email" 
+                      placeholder="you@example.com" 
+                      required 
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="reg-password">Password</Label>
-                    <Input id="reg-password" type="password" required />
+                    <Input 
+                      id="reg-password" 
+                      type="password" 
+                      required 
+                      value={registerPassword}
+                      onChange={(e) => setRegisterPassword(e.target.value)}
+                    />
                   </div>
-                  <Button type="submit" className="w-full" size="lg">Create Account</Button>
+                  <Button type="submit" className="w-full" size="lg" disabled={registerMutation.isPending}>
+                    {registerMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Create Account
+                  </Button>
                 </form>
+              </TabsContent>
+
+              <TabsContent value="forgot">
+                 {!isResetting ? (
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg font-medium">Reset Password</h3>
+                        <p className="text-sm text-muted-foreground">Enter your email to receive a reset code.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="forgot-email">Email</Label>
+                        <Input 
+                          id="forgot-email" 
+                          type="email" 
+                          placeholder="you@example.com" 
+                          required 
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" size="lg" disabled={isForgotLoading}>
+                        {isForgotLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Send Reset Code
+                      </Button>
+                      <div className="text-center mt-2">
+                        <button type="button" onClick={() => setActiveTab("login")} className="text-sm text-primary hover:underline">
+                          Back to Login
+                        </button>
+                      </div>
+                    </form>
+                 ) : (
+                    <form onSubmit={handleResetPassword} className="space-y-4">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg font-medium">Set New Password</h3>
+                        <p className="text-sm text-muted-foreground">Enter the code sent to {forgotEmail}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-code">Reset Code</Label>
+                        <Input 
+                          id="reset-code" 
+                          type="text" 
+                          required 
+                          value={resetCode}
+                          onChange={(e) => setResetCode(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input 
+                          id="new-password" 
+                          type="password" 
+                          required 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </div>
+                      <Button type="submit" className="w-full" size="lg" disabled={isForgotLoading}>
+                        {isForgotLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Reset Password
+                      </Button>
+                      <div className="text-center mt-2">
+                        <button type="button" onClick={() => setIsResetting(false)} className="text-sm text-primary hover:underline">
+                          Back
+                        </button>
+                      </div>
+                    </form>
+                 )}
               </TabsContent>
             </Tabs>
           </CardContent>
