@@ -1,12 +1,13 @@
 import { fileURLToPath, URL } from 'node:url';
-
 import { defineConfig } from 'vite';
-import plugin from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import fs from 'fs';
 import path from 'path';
 import child_process from 'child_process';
 import { env } from 'process';
 
+// SSL Certificate Setup for ASP.NET integration
 const baseFolder =
     env.APPDATA !== undefined && env.APPDATA !== ''
         ? `${env.APPDATA}/ASP.NET/https`
@@ -34,18 +35,36 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
     }
 }
 
+// Target for ASP.NET backend proxy
 const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
     env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'http://localhost:5083';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [plugin()],
+    plugins: [
+        react(),
+        tailwindcss(),
+    ],
     resolve: {
         alias: {
-            '@': fileURLToPath(new URL('./src', import.meta.url))
+            '@': path.resolve(import.meta.dirname, 'client', 'src'),
+            '@shared': path.resolve(import.meta.dirname, 'shared'),
+            '@assets': path.resolve(import.meta.dirname, 'attached_assets'),
         }
     },
+    css: {
+        postcss: {
+            plugins: [],
+        },
+    },
+    root: path.resolve(import.meta.dirname, 'client'),
     server: {
+        host: '0.0.0.0',
+        allowedHosts: true,
+        fs: {
+            strict: true,
+            deny: ['**/.*'],
+        },
         proxy: {
             '^/weatherforecast': {
                 target,
@@ -58,4 +77,4 @@ export default defineConfig({
             cert: fs.readFileSync(certFilePath),
         }
     }
-})
+});
