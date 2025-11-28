@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, ArrowRight } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import type { TravelDestination } from "@/lib/data";
 
@@ -65,13 +65,29 @@ export function DestinationCard({ destination }: { destination: DestinationCardP
         </div>
       </CardContent>
       
-      <CardFooter className="pt-2 pb-4">
-        <Button asChild className="w-full group-hover:bg-primary/90" variant="outline">
-          <Link href={`/destinations/${destination.id}`}>
-            View Details
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </Button>
+      <CardFooter className="pt-2 pb-4 flex flex-col gap-3">
+        <div className="flex gap-2 w-full">
+          <Button asChild className="flex-1" variant="outline">
+            <Link href={`/destinations/${destination.id}`}>
+              View Details
+            </Link>
+          </Button>
+          <Button asChild className="flex-1 group-hover:bg-primary/90" variant="default">
+            <Link href={`/booking?destination=${encodeURIComponent(destination.title)}`}>
+              Book Now
+            </Link>
+          </Button>
+        </div>
+        
+        <a 
+          href={`https://www.google.com/maps/search/things+to+do+in+${encodeURIComponent(destination.location)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-primary flex items-center justify-center gap-1 transition-colors"
+        >
+          <MapPin className="h-3 w-3" />
+          View things to do on Google Maps
+        </a>
       </CardFooter>
     </Card>
   );

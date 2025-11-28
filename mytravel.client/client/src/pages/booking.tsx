@@ -1,11 +1,11 @@
 import { BookingForm } from "@/components/booking-form";
-import mapImage from "@assets/generated_images/stylized_illustrated_world_map.png";
+import { TripSummary } from "@/components/trip-summary";
 
 export default function Booking() {
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-2 space-y-6">
           <div>
             <h1 className="text-4xl font-serif font-bold mb-4">Ready for Adventure?</h1>
             <p className="text-muted-foreground text-lg">
@@ -24,6 +24,10 @@ export default function Booking() {
               <li>Secure payment processing</li>
             </ul>
           </div>
+        </div>
+
+        <div className="lg:col-span-1">
+          <TripSummary />
         </div>
       </div>
     </div>

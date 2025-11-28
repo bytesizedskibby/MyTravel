@@ -183,9 +183,25 @@ export default function DestinationDetails() {
 
                 <Separator />
                 
-                <Button className="w-full h-12 text-lg" onClick={() => setLocation("/booking")}>
-                  Book Now
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full h-12 text-lg" 
+                    onClick={() => setLocation(`/booking?destination=${encodeURIComponent(destination.title)}`)}
+                  >
+                    Book Now
+                  </Button>
+                  
+                  <a 
+                    href={`https://www.google.com/maps/search/things+to+do+in+${encodeURIComponent(destination.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    View things to do on Google Maps
+                  </a>
+                </div>
+
                 <p className="text-xs text-center text-muted-foreground">
                   Free cancellation up to 24h before trip
                 </p>

@@ -9,10 +9,12 @@ import Destinations from "@/pages/destinations";
 import DestinationDetails from "@/pages/destination-details";
 import Planner from "@/pages/planner";
 import Booking from "@/pages/booking";
+import Checkout from "@/pages/checkout";
 import Blog from "@/pages/blog";
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
 import { AuthProvider } from "@/hooks/use-auth";
+import { CartProvider } from "@/context/cart-context";
 
 function Router() {
   return (
@@ -30,6 +32,7 @@ function Router() {
             <Route path="/destinations/:id" component={DestinationDetails} />
             <Route path="/planner" component={Planner} />
             <Route path="/booking" component={Booking} />
+            <Route path="/checkout" component={Checkout} />
             <Route path="/blog" component={Blog} />
             <Route component={NotFound} />
           </Switch>
@@ -43,10 +46,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
