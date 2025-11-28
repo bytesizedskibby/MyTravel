@@ -18,6 +18,15 @@ import { Layout } from "@/components/layout";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/context/cart-context";
 import { BlogProvider } from "@/context/blog-context";
+import { AdminAuthProvider } from "@/hooks/use-admin-auth";
+import { AdminLayout } from "@/components/admin/admin-layout";
+import { ProtectedAdminRoute } from "@/components/admin/protected-admin-route";
+import AdminLogin from "@/pages/admin/admin-login";
+import AdminDashboard from "@/pages/admin/admin-dashboard";
+import AdminUsers from "@/pages/admin/admin-users";
+import AdminBookings from "@/pages/admin/admin-bookings";
+import AdminBlog from "@/pages/admin/admin-blog";
+import { usePing } from "@/hooks/use-ping";
 
 function Router() {
   return (
@@ -25,6 +34,45 @@ function Router() {
       {/* Standalone Pages */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Login} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/users">
+        {() => (
+          <ProtectedAdminRoute>
+            <AdminLayout>
+              <AdminUsers />
+            </AdminLayout>
+          </ProtectedAdminRoute>
+        )}
+      </Route>
+      <Route path="/admin/bookings">
+        {() => (
+          <ProtectedAdminRoute>
+            <AdminLayout>
+              <AdminBookings />
+            </AdminLayout>
+          </ProtectedAdminRoute>
+        )}
+      </Route>
+      <Route path="/admin/blog">
+        {() => (
+          <ProtectedAdminRoute>
+            <AdminLayout>
+              <AdminBlog />
+            </AdminLayout>
+          </ProtectedAdminRoute>
+        )}
+      </Route>
+      <Route path="/admin">
+        {() => (
+          <ProtectedAdminRoute>
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          </ProtectedAdminRoute>
+        )}
+      </Route>
       
       {/* App Layout Pages */}
       <Route>
@@ -49,17 +97,22 @@ function Router() {
 }
 
 function App() {
+  // Ping server to track online users
+  usePing();
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BlogProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </CartProvider>
-        </BlogProvider>
+        <AdminAuthProvider>
+          <BlogProvider>
+            <CartProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+              </TooltipProvider>
+            </CartProvider>
+          </BlogProvider>
+        </AdminAuthProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
