@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useBlog, BlogCategory, EditorContent } from "@/context/blog-context";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { BlogCategory, EditorContent, BlogPost } from "@/context/blog-context";
 import { blogCategoryLabels } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
+import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -20,15 +24,30 @@ import { useToast } from "@/hooks/use-toast";
 import { Editor } from "@/components/blocks/editor-md/editor";
 import { SerializedEditorState } from "lexical";
 
+type BlogPostResponse = {
+  id: number;
+  title: string;
+  slug: string;
+  category: string;
+  excerpt: string;
+  content: string | null;
+  imageUrl: string | null;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  author: { id: string; name: string } | null;
+};
+
 export default function BlogEditor() {
-  const [, params] = useRoute("/blog/edit/:id");
+  const [, params] = useRoute("/blog/editor/:id");
   const [, setLocation] = useLocation();
-  const { getPost, addPost, updatePost } = useBlog();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const { toast } = useToast();
 
   const isEditMode = !!params?.id;
-  const existingPost = isEditMode ? getPost(params.id) : undefined;
+  const postId = params?.id ? parseInt(params.id, 10) : null;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -36,11 +55,76 @@ export default function BlogEditor() {
   const [image, setImage] = useState("");
   const [category, setCategory] = useState<BlogCategory>("solo-travel");
   const [content, setContent] = useState<EditorContent | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+
+  // Fetch existing post in edit mode
+  const { data: existingPost, isLoading: isLoadingPost } = useQuery<BlogPostResponse>({
+    queryKey: ["/api/admin/blog", postId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/blog/${postId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch post");
+      return res.json();
+    },
+    enabled: isEditMode && !!postId,
+  });
+
+  // Create post mutation
+  const createMutation = useMutation({
+    mutationFn: async (postData: {
+      title: string;
+      category: string;
+      excerpt: string;
+      content: string | null;
+      imageUrl: string;
+      published: boolean;
+    }) => {
+      const res = await fetch("/api/admin/blog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(postData),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create post");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
+      setLocation(`/blog/${data.slug}`);
+    },
+  });
+
+  // Update post mutation
+  const updateMutation = useMutation({
+    mutationFn: async (postData: {
+      id: number;
+      title: string;
+      category: string;
+      excerpt: string;
+      content: string | null;
+      imageUrl: string;
+      published: boolean;
+    }) => {
+      const res = await fetch(`/api/admin/blog/${postData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(postData),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update post");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blog"] });
+    },
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!user?.isAuthenticated) {
+    if (!user?.isAuthenticated && !isAdmin) {
       toast({
         title: "Authentication required",
         description: "Please log in to create or edit blog posts.",
@@ -48,28 +132,30 @@ export default function BlogEditor() {
       });
       setLocation("/login");
     }
-  }, [user, setLocation, toast]);
+  }, [user, isAdmin, setLocation, toast]);
 
   // Load existing post data in edit mode
   useEffect(() => {
     if (isEditMode && existingPost) {
-      // Check if user is the author
-      if (user?.name !== existingPost.author.name) {
-        toast({
-          title: "Unauthorized",
-          description: "You can only edit your own posts.",
-          variant: "destructive",
-        });
-        setLocation("/blog");
-        return;
-      }
       setTitle(existingPost.title);
       setExcerpt(existingPost.excerpt);
-      setImage(existingPost.image);
-      setCategory(existingPost.category);
-      setContent(existingPost.content);
+      setImage(existingPost.imageUrl || "");
+      setCategory(existingPost.category as BlogCategory);
+      
+      // Parse content if it's a string
+      if (existingPost.content) {
+        try {
+          const parsedContent = typeof existingPost.content === "string" 
+            ? JSON.parse(existingPost.content) 
+            : existingPost.content;
+          setContent(parsedContent);
+          setEditorKey(prev => prev + 1); // Force editor re-render
+        } catch {
+          setContent(null);
+        }
+      }
     }
-  }, [isEditMode, existingPost, user, setLocation, toast]);
+  }, [isEditMode, existingPost]);
 
   const handleSubmit = async (publish: boolean) => {
     if (!title.trim()) {
@@ -90,45 +176,31 @@ export default function BlogEditor() {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      if (isEditMode && existingPost) {
-        updatePost(existingPost.id, {
-          title,
-          excerpt,
-          image: image || existingPost.image,
-          category,
-          content,
-          published: publish,
-        });
+      const postData = {
+        title,
+        category,
+        excerpt,
+        content: content ? JSON.stringify(content) : null,
+        imageUrl: image || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800",
+        published: publish,
+      };
+
+      if (isEditMode && postId) {
+        await updateMutation.mutateAsync({ ...postData, id: postId });
         toast({
           title: "Post updated",
           description: publish ? "Your post has been published." : "Your draft has been saved.",
         });
+        if (publish && existingPost) {
+          setLocation(`/blog/${existingPost.slug}`);
+        }
       } else {
-        const newPost = addPost({
-          title,
-          excerpt,
-          image: image || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800",
-          category,
-          content,
-          published: publish,
-          author: {
-            id: `user-${Date.now()}`,
-            name: user?.name || "Anonymous",
-          },
-        });
+        const result = await createMutation.mutateAsync(postData);
         toast({
           title: "Post created",
           description: publish ? "Your post has been published." : "Your draft has been saved.",
         });
-        setLocation(`/blog/${newPost.id}`);
-        return;
-      }
-
-      if (publish) {
-        setLocation(`/blog/${existingPost?.id}`);
       }
     } catch (error) {
       toast({
@@ -136,8 +208,6 @@ export default function BlogEditor() {
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -145,9 +215,40 @@ export default function BlogEditor() {
     setContent(serializedState);
   };
 
-  if (!user?.isAuthenticated) {
+  if (!user?.isAuthenticated && !isAdmin) {
     return null;
   }
+
+  if (isEditMode && isLoadingPost) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="border-b bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <Skeleton className="h-10 w-48" />
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-10 w-1/2" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <Skeleton className="h-96 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -266,13 +367,15 @@ export default function BlogEditor() {
               </CardHeader>
               <CardContent>
                 <div className="min-h-[400px]">
-                  {isEditMode && existingPost?.content ? (
+                  {isEditMode && content ? (
                     <Editor
-                      editorSerializedState={existingPost.content}
+                      key={editorKey}
+                      editorSerializedState={content}
                       onSerializedChange={handleEditorChange}
                     />
                   ) : (
                     <Editor
+                      key={editorKey}
                       onSerializedChange={handleEditorChange}
                     />
                   )}

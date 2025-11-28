@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, PenSquare } from "lucide-react";
+import { ArrowRight, PenSquare, Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useBlog, getAuthorInitials, BlogCategory } from "@/context/blog-context";
 import { blogCategoryLabels } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
 type FilterCategory = BlogCategory | "all";
 
 export default function Blog() {
   const [activeCategory, setActiveCategory] = useState<FilterCategory>("all");
-  const { getPostsByCategory } = useBlog();
+  const { getPostsByCategory, isLoading } = useBlog();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -56,7 +57,22 @@ export default function Blog() {
         </Tabs>
       </div>
 
-      {posts.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden border-none shadow-lg">
+              <Skeleton className="h-48 w-full" />
+              <CardHeader>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-6 w-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-16 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">No posts found in this category.</p>
           {user?.isAuthenticated && (
@@ -105,7 +121,7 @@ export default function Blog() {
               </CardContent>
               <div className="p-6 pt-0 mt-auto">
                 <Button asChild variant="link" className="p-0 h-auto text-primary font-semibold group-hover:translate-x-1 transition-transform">
-                  <Link href={`/blog/${post.id}`}>
+                  <Link href={`/blog/${post.slug}`}>
                     Read Story <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </Button>

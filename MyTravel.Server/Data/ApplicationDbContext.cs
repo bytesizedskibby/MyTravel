@@ -15,6 +15,26 @@ public class ApplicationUser : IdentityUser
     public string FullName => $"{FirstName} {LastName}".Trim();
     
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<BlogPost> BlogPosts { get; set; } = new List<BlogPost>();
+}
+
+public class BlogPost
+{
+    public int Id { get; set; }
+    public string? AuthorId { get; set; }
+    public ApplicationUser? Author { get; set; }
+    
+    public string Title { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty; // "solo-travel", "family-trips", "luxury-travel"
+    public string Excerpt { get; set; } = string.Empty;
+    public string? Content { get; set; } // JSON string for Lexical editor state
+    public string? ImageUrl { get; set; }
+    
+    public bool Published { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? PublishedAt { get; set; }
 }
 
 public enum BookingStatus
@@ -74,6 +94,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<BookingItem> BookingItems { get; set; }
+    public DbSet<BlogPost> BlogPosts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -105,6 +126,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.Property(e => e.Type).HasConversion<string>();
+        });
+        
+        builder.Entity<BlogPost>(entity =>
+        {
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("datetime('now')");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("datetime('now')");
+            entity.HasIndex(e => e.Slug).IsUnique();
+            
+            entity.HasOne(b => b.Author)
+                .WithMany(u => u.BlogPosts)
+                .HasForeignKey(b => b.AuthorId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -1,11 +1,13 @@
+import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
-import { useBlog, getAuthorInitials } from "@/context/blog-context";
+import { useBlog, getAuthorInitials, BlogPost } from "@/context/blog-context";
 import { blogCategoryLabels } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Edit, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Calendar, Edit, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -15,12 +17,52 @@ import { editorTheme } from "@/components/editor/themes/editor-theme";
 import { nodes } from "@/components/blocks/editor-md/nodes";
 
 export default function BlogDetail() {
-  const [, params] = useRoute("/blog/:id");
+  const [, params] = useRoute("/blog/:slug");
   const [, setLocation] = useLocation();
-  const { getPost } = useBlog();
+  const { getPostBySlug, getPost, isLoading: contextLoading } = useBlog();
   const { user } = useAuth();
+  
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const post = getPost(params?.id || "");
+  useEffect(() => {
+    const fetchPost = async () => {
+      if (!params?.slug) return;
+      setIsLoading(true);
+      
+      // First try to get from cache/context
+      const cachedPost = getPost(params.slug);
+      if (cachedPost) {
+        setPost(cachedPost);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Otherwise fetch from API
+      const fetchedPost = await getPostBySlug(params.slug);
+      setPost(fetchedPost);
+      setIsLoading(false);
+    };
+    
+    fetchPost();
+  }, [params?.slug, getPostBySlug, getPost]);
+
+  if (isLoading || contextLoading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <Skeleton className="h-[50vh] w-full" />
+        <div className="container mx-auto px-4 -mt-32 relative z-10">
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-card rounded-xl shadow-lg p-8 md:p-12">
+              <Skeleton className="h-8 w-24 mb-4" />
+              <Skeleton className="h-12 w-full mb-4" />
+              <Skeleton className="h-12 w-3/4" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -93,7 +135,7 @@ export default function BlogDetail() {
                   variant="outline" 
                   size="sm" 
                   className="gap-2"
-                  onClick={() => setLocation(`/blog/edit/${post.id}`)}
+                  onClick={() => setLocation(`/blog/editor/${post.id}`)}
                 >
                   <Edit className="h-4 w-4" /> Edit Post
                 </Button>

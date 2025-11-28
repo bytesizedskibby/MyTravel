@@ -86,8 +86,8 @@ function Router() {
             <Route path="/checkout" component={Checkout} />
             <Route path="/blog" component={Blog} />
             <Route path="/blog/new" component={BlogEditor} />
-            <Route path="/blog/edit/:id" component={BlogEditor} />
-            <Route path="/blog/:id" component={BlogDetail} />
+            <Route path="/blog/editor/:id" component={BlogEditor} />
+            <Route path="/blog/:slug" component={BlogDetail} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
