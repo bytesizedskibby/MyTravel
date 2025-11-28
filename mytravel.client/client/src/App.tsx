@@ -11,10 +11,13 @@ import Planner from "@/pages/planner";
 import Booking from "@/pages/booking";
 import Checkout from "@/pages/checkout";
 import Blog from "@/pages/blog";
+import BlogDetail from "@/pages/blog-detail";
+import BlogEditor from "@/pages/blog-editor";
 import Login from "@/pages/login";
 import { Layout } from "@/components/layout";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/context/cart-context";
+import { BlogProvider } from "@/context/blog-context";
 
 function Router() {
   return (
@@ -34,6 +37,9 @@ function Router() {
             <Route path="/booking" component={Booking} />
             <Route path="/checkout" component={Checkout} />
             <Route path="/blog" component={Blog} />
+            <Route path="/blog/new" component={BlogEditor} />
+            <Route path="/blog/edit/:id" component={BlogEditor} />
+            <Route path="/blog/:id" component={BlogDetail} />
             <Route component={NotFound} />
           </Switch>
         </Layout>
@@ -46,12 +52,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </CartProvider>
+        <BlogProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CartProvider>
+        </BlogProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

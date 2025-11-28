@@ -46,19 +46,19 @@ export function Hero() {
         </p>
 
         {/* Search Bar */}
-        <div className="max-w-3xl mx-auto mt-10 animate-in fade-in scale-in-95 duration-500 delay-300">
+        <div className="flex justify-center max-w-3xl mx-auto mt-10 animate-in fade-in scale-in-95 duration-500 delay-300">
           <form 
             onSubmit={handleSearch}
             className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full flex flex-col md:flex-row gap-2 shadow-2xl"
           >
-            <div className="flex-1 bg-white rounded-full">
+            {/* <div className="flex-1 bg-white rounded-full">
               <DestinationCombobox
                 value={selectedDestination}
                 onValueChange={setSelectedDestination}
                 placeholder="Where do you want to go?"
                 className="h-14 border-none shadow-none rounded-full bg-transparent"
               />
-            </div>
+            </div> */}
             
             <Button 
               size="lg" 
