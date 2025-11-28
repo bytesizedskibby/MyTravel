@@ -55,7 +55,6 @@ const navItems = [
     title: "Blog Management",
     url: "/admin/blog",
     icon: FileText,
-    badge: "Coming Soon",
   },
 ];
 
@@ -103,11 +102,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       <Link href={item.url}>
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
-                        {item.badge && (
-                          <span className="ml-auto text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                            {item.badge}
-                          </span>
-                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
