@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import posthog from "posthog-js";
 
 // Define types that match ASP.NET Core Identity
 export type User = {
@@ -55,6 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      // Identify user in PostHog
+      posthog.identify(user.name, {
+        email: user.name,
+      });
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
@@ -94,6 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      // Identify new user in PostHog
+      posthog.identify(user.name, {
+        email: user.name,
+      });
+      posthog.capture("user_signed_up", {
+        email: user.name,
+      });
       toast({
         title: "Registration successful",
         description: "Welcome to MyTravel!",
@@ -114,6 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      // Reset PostHog session on logout
+      posthog.reset();
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",

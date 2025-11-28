@@ -25,7 +25,7 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // Available filter options
-const continentOptions = ["Europe", "Asia", "North America", "Africa", "Oceania"] as const;
+const continentOptions = ["Europe", "Asia", "North America", "South America", "Africa", "Oceania"] as const;
 const activityOptions = ["Beaches", "Hiking", "Cultural", "City Break", "Wildlife", "Relaxation"] as const;
 
 export default function Destinations() {

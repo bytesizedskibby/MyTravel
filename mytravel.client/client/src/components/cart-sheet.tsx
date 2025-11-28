@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import posthog from "posthog-js";
 
 export function CartSheet() {
   const { items, removeItem, total } = useCart();
@@ -21,6 +22,12 @@ export function CartSheet() {
   const [, setLocation] = useLocation();
 
   const handleCheckout = () => {
+    // Track checkout initiated in PostHog
+    posthog.capture('checkout_initiated', {
+      total_items: items.length,
+      total_value: total,
+      item_types: items.map(i => i.type),
+    });
     setIsOpen(false);
     setLocation("/checkout");
   };

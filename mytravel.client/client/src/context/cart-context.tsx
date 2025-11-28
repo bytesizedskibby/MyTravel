@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import posthog from 'posthog-js';
 
 export type CartItemType = 'flight' | 'hotel' | 'tour';
 
@@ -25,7 +26,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   const addItem = (item: Omit<CartItem, 'id'>) => {
-    setItems((prev) => [...prev, { ...item, id: Math.random().toString(36).substr(2, 9) }]);
+    const newItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+    setItems((prev) => [...prev, newItem]);
+    // Track add to cart event in PostHog
+    posthog.capture('item_added_to_cart', {
+      item_type: item.type,
+      item_title: item.title,
+      item_price: item.price,
+    });
   };
 
   const removeItem = (id: string) => {
@@ -33,6 +41,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCart = () => {
+    // Track purchase completed event in PostHog before clearing
+    if (items.length > 0) {
+      posthog.capture('cart_cleared', {
+        total_items: items.length,
+        total_value: total,
+        item_types: items.map(i => i.type),
+      });
+    }
     setItems([]);
   };
 

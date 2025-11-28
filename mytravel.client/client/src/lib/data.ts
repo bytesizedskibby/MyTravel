@@ -2,6 +2,14 @@ import santoriniImg from "@assets/generated_images/hero_image_of_santorini_sunse
 import maldivesImg from "@assets/generated_images/tropical_maldives_beach.png";
 import alpsImg from "@assets/generated_images/swiss_alps_landscape.png";
 import kyotoImg from "@assets/generated_images/kyoto_street_with_cherry_blossoms.png";
+import egyptImg from "@assets/generated_images/egypt_pyramids_sphinx.jpg";
+import costaRicaImg from "@assets/generated_images/costa_rica_waterfall.jpg";
+import panamaImg from "@assets/generated_images/panama_san_blas.jpg";
+import newZealandImg from "@assets/generated_images/new_zealand_aerial.jpg";
+import australiaImg from "@assets/generated_images/australia_sydney_opera.jpg";
+import kenyaImg from "@assets/generated_images/kenya_giraffe_safari.jpg";
+import argentinaImg from "@assets/generated_images/argentina_buenos_aires.jpg";
+import brazilImg from "@assets/generated_images/brazil_christ_redeemer.jpg";
 
 // Extended destination interface for display cards with full details
 export interface DestinationDetails {
@@ -111,6 +119,178 @@ export const destinations: TravelDestination[] = [
       bestTime: "March to May, October to November",
       language: "Japanese",
       currency: "Japanese Yen (¥)"
+    }
+  },
+  // North America
+  {
+    id: "5",
+    title: "Costa Rica Rainforest Adventure",
+    location: "Costa Rica, North America",
+    image: costaRicaImg,
+    price: 1400,
+    rating: 4.8,
+    reviews: 980,
+    tags: ["Nature", "Wildlife", "Adventure"],
+    description: "Explore lush rainforests, spot exotic wildlife, and zip-line through the canopy in this eco-paradise.",
+    continent: "North America",
+    activity: "Wildlife",
+    coordinates: { lat: 9.7489, lng: -83.7534 },
+    details: {
+      about: "Costa Rica is a Central American country known for its beaches, volcanoes, and biodiversity. Roughly a quarter of its area is made up of protected jungle, teeming with wildlife including spider monkeys and quetzal birds.",
+      highlights: ["Arenal Volcano", "Monteverde Cloud Forest", "Manuel Antonio", "Tortuguero"],
+      bestTime: "December to April",
+      language: "Spanish",
+      currency: "Costa Rican Colón (CRC)"
+    }
+  },
+  {
+    id: "6",
+    title: "Panama Canal & City Explorer",
+    location: "Panama, North America",
+    image: panamaImg,
+    price: 1100,
+    rating: 4.7,
+    reviews: 540,
+    tags: ["City Break", "History", "Culture"],
+    description: "Witness the engineering marvel of the Panama Canal and explore the vibrant Casco Viejo old town.",
+    continent: "North America",
+    activity: "Cultural",
+    coordinates: { lat: 8.9824, lng: -79.5199 },
+    details: {
+      about: "Panama is a country on the isthmus linking Central and South America. The Panama Canal, a famous feat of human engineering, cuts through its center, linking the Atlantic and Pacific oceans to create an essential shipping route.",
+      highlights: ["Panama Canal", "Casco Viejo", "San Blas Islands", "Biomuseo"],
+      bestTime: "December to April",
+      language: "Spanish",
+      currency: "US Dollar (USD) / Balboa (PAB)"
+    }
+  },
+  // Oceania
+  {
+    id: "7",
+    title: "New Zealand South Island",
+    location: "New Zealand, Oceania",
+    image: newZealandImg,
+    price: 2200,
+    rating: 4.9,
+    reviews: 1560,
+    tags: ["Nature", "Hiking", "Adventure"],
+    description: "Discover dramatic fjords, snow-capped mountains, and adventure sports in the stunning South Island.",
+    continent: "Oceania",
+    activity: "Hiking",
+    coordinates: { lat: -45.0312, lng: 168.6626 },
+    details: {
+      about: "New Zealand's South Island is known for its stunning natural beauty, from the dramatic Milford Sound to the adventure capital Queenstown. The island offers world-class hiking, skiing, and bungee jumping.",
+      highlights: ["Milford Sound", "Queenstown", "Franz Josef Glacier", "Mount Cook"],
+      bestTime: "December to February (Summer), June to August (Skiing)",
+      language: "English, Māori",
+      currency: "New Zealand Dollar (NZD)"
+    }
+  },
+  {
+    id: "8",
+    title: "Australian Outback Safari",
+    location: "Australia, Oceania",
+    image: australiaImg,
+    price: 1900,
+    rating: 4.7,
+    reviews: 890,
+    tags: ["Nature", "Wildlife", "Adventure"],
+    description: "Experience the vast red desert, ancient Aboriginal culture, and unique wildlife of the Australian Outback.",
+    continent: "Oceania",
+    activity: "Wildlife",
+    coordinates: { lat: -25.3444, lng: 131.0369 },
+    details: {
+      about: "The Australian Outback is the vast, remote interior of Australia. It's known for its red earth, ancient rock formations like Uluru, and unique wildlife including kangaroos and emus.",
+      highlights: ["Uluru", "Kata Tjuta", "Kings Canyon", "Alice Springs"],
+      bestTime: "May to September",
+      language: "English",
+      currency: "Australian Dollar (AUD)"
+    }
+  },
+  // Africa
+  {
+    id: "9",
+    title: "Egypt Pyramids & Nile Cruise",
+    location: "Egypt, Africa",
+    image: egyptImg,
+    price: 1600,
+    rating: 4.8,
+    reviews: 2340,
+    tags: ["History", "Culture", "Luxury"],
+    description: "Marvel at the ancient pyramids of Giza and cruise the legendary Nile River through 5,000 years of history.",
+    continent: "Africa",
+    activity: "Cultural",
+    coordinates: { lat: 29.9792, lng: 31.1342 },
+    details: {
+      about: "Egypt is a country linking northeast Africa with the Middle East, dating to the time of the pharaohs. Millennia-old monuments sit along the fertile Nile River Valley, including the colossal Pyramids and Great Sphinx.",
+      highlights: ["Pyramids of Giza", "Valley of the Kings", "Luxor Temple", "Abu Simbel"],
+      bestTime: "October to April",
+      language: "Arabic",
+      currency: "Egyptian Pound (EGP)"
+    }
+  },
+  {
+    id: "10",
+    title: "Kenya Safari Experience",
+    location: "Kenya, Africa",
+    image: kenyaImg,
+    price: 2800,
+    rating: 4.9,
+    reviews: 1120,
+    tags: ["Wildlife", "Nature", "Adventure"],
+    description: "Witness the Great Migration, spot the Big Five, and stay in luxury safari lodges in the Maasai Mara.",
+    continent: "Africa",
+    activity: "Wildlife",
+    coordinates: { lat: -1.2921, lng: 36.8219 },
+    details: {
+      about: "Kenya is a country in East Africa with coastline on the Indian Ocean. It encompasses savannah, lakelands, the dramatic Great Rift Valley and mountain highlands. It's also home to wildlife like lions, elephants and rhinos.",
+      highlights: ["Maasai Mara", "Amboseli National Park", "Lake Nakuru", "Nairobi National Park"],
+      bestTime: "July to October (Great Migration), January to February",
+      language: "Swahili, English",
+      currency: "Kenyan Shilling (KES)"
+    }
+  },
+  // South America
+  {
+    id: "11",
+    title: "Rio de Janeiro Carnival",
+    location: "Brazil, South America",
+    image: brazilImg,
+    price: 1500,
+    rating: 4.8,
+    reviews: 1890,
+    tags: ["Beach", "Culture", "City Break"],
+    description: "Experience the vibrant energy of Rio, from iconic beaches like Copacabana to the world-famous Carnival celebration.",
+    continent: "South America",
+    activity: "Cultural",
+    coordinates: { lat: -22.9068, lng: -43.1729 },
+    details: {
+      about: "Rio de Janeiro is a huge seaside city in Brazil, famed for its Copacabana and Ipanema beaches, 38m Christ the Redeemer statue atop Mount Corcovado and for Sugarloaf Mountain, a granite peak with cable cars to its summit.",
+      highlights: ["Christ the Redeemer", "Sugarloaf Mountain", "Copacabana Beach", "Carnival"],
+      bestTime: "December to March (Summer), February (Carnival)",
+      language: "Portuguese",
+      currency: "Brazilian Real (BRL)"
+    }
+  },
+  {
+    id: "12",
+    title: "Buenos Aires Tango & Culture",
+    location: "Argentina, South America",
+    image: argentinaImg,
+    price: 1200,
+    rating: 4.7,
+    reviews: 1450,
+    tags: ["Culture", "City Break", "Food"],
+    description: "Discover the passionate soul of Argentina through tango, world-class cuisine, and stunning European-style architecture.",
+    continent: "South America",
+    activity: "Cultural",
+    coordinates: { lat: -34.6037, lng: -58.3816 },
+    details: {
+      about: "Buenos Aires is Argentina's big, cosmopolitan capital city. Its center is the Plaza de Mayo, lined with stately 19th-century buildings including Casa Rosada, the iconic, balconied presidential palace. The city is known for tango, steakhouses, and vibrant nightlife.",
+      highlights: ["La Boca", "Recoleta Cemetery", "Teatro Colón", "San Telmo Market"],
+      bestTime: "March to May, September to November",
+      language: "Spanish",
+      currency: "Argentine Peso (ARS)"
     }
   }
 ];

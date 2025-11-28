@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import posthog from "posthog-js";
 import { useCart } from "@/context/cart-context";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -61,6 +62,17 @@ export default function Checkout() {
     }
   }, [userProfile]);
 
+  // Track checkout page view
+  useEffect(() => {
+    if (items.length > 0) {
+      posthog.capture('checkout_viewed', {
+        total_items: items.length,
+        total_value: total,
+        item_types: items.map(i => i.type),
+      });
+    }
+  }, []); // Only fire once on mount
+
   // Booking mutation
   const bookingMutation = useMutation<BookingResponse, Error, { paymentReference: string }>({
     mutationFn: async ({ paymentReference }) => {
@@ -91,6 +103,14 @@ export default function Checkout() {
     },
     onSuccess: (data) => {
       setBookingId(data.id);
+      // Track successful purchase in PostHog
+      posthog.capture('purchase_completed', {
+        booking_id: data.id,
+        total_amount: data.totalAmount,
+        total_items: items.length,
+        item_types: items.map(i => i.type),
+        items: items.map(i => ({ title: i.title, type: i.type, price: i.price })),
+      });
       clearCart();
       toast({
         title: "Payment Successful!",
@@ -98,6 +118,11 @@ export default function Checkout() {
       });
     },
     onError: (error) => {
+      // Track failed purchase in PostHog
+      posthog.capture('purchase_failed', {
+        error_message: error.message,
+        total_amount: total,
+      });
       toast({
         variant: "destructive",
         title: "Booking Error",

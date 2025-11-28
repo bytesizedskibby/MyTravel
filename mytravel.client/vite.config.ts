@@ -58,12 +58,12 @@ export default defineConfig({
         },
     },
     root: path.resolve(import.meta.dirname, 'client'),
+    envDir: path.resolve(import.meta.dirname, 'client'),
     server: {
         host: '0.0.0.0',
         allowedHosts: true,
         fs: {
             strict: true,
-            deny: ['**/.*'],
         },
         proxy: {
             '^/weatherforecast': {

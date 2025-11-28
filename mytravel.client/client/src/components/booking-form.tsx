@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,9 +69,16 @@ export function BookingForm() {
 
   const handleSearchFlights = () => {
     const location = getDestinationName(flightTo);
+    const fromLocation = getDestinationName(flightFrom);
     const results = searchFlights(location);
     setFlightResults(results);
     setShowResults(true);
+    // Track flight search in PostHog
+    posthog.capture('search_flights', {
+      from: fromLocation,
+      to: location,
+      results_count: results.length,
+    });
   };
 
   const handleSearchHotels = () => {
@@ -78,6 +86,11 @@ export function BookingForm() {
     const results = searchHotels(location);
     setHotelResults(results);
     setShowResults(true);
+    // Track hotel search in PostHog
+    posthog.capture('search_hotels', {
+      destination: location,
+      results_count: results.length,
+    });
   };
 
   const handleSearchTours = () => {
@@ -85,6 +98,11 @@ export function BookingForm() {
     const results = searchTours(location);
     setTourResults(results);
     setShowResults(true);
+    // Track tour search in PostHog
+    posthog.capture('search_tours', {
+      location: location,
+      results_count: results.length,
+    });
   };
 
   const addToCart = (item: any, type: 'flight' | 'hotel' | 'tour') => {
