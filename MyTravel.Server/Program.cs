@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MyTravel.Server.Data;
 using MyTravel.Server.Services;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,12 +31,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     
-    // Create DB if not exists
-    using (var scope = app.Services.CreateScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.EnsureCreated();
-    }
+    // Seed database with sample data
+    await DbSeeder.SeedAsync(app.Services);
 }
 
 app.MapGroup("/api").MapIdentityApi<ApplicationUser>();
@@ -45,6 +42,80 @@ app.MapGet("/api/user", (System.Security.Claims.ClaimsPrincipal user) =>
     return user.Identity?.IsAuthenticated == true 
         ? Results.Ok(new { user.Identity.Name, IsAuthenticated = true }) 
         : Results.Unauthorized();
+});
+
+// Get current user's full profile
+app.MapGet("/api/user/profile", async (
+    ClaimsPrincipal user,
+    ApplicationDbContext db) =>
+{
+    if (user.Identity?.IsAuthenticated != true)
+    {
+        return Results.Unauthorized();
+    }
+
+    var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var appUser = await db.Users.FindAsync(userId);
+    if (appUser == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new UserProfileDto(
+        appUser.Id,
+        appUser.Email,
+        appUser.FirstName,
+        appUser.LastName,
+        appUser.FullName
+    ));
+});
+
+// Update current user's profile
+app.MapPut("/api/user/profile", async (
+    UpdateProfileRequest request,
+    ClaimsPrincipal user,
+    ApplicationDbContext db) =>
+{
+    if (user.Identity?.IsAuthenticated != true)
+    {
+        return Results.Unauthorized();
+    }
+
+    var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var appUser = await db.Users.FindAsync(userId);
+    if (appUser == null)
+    {
+        return Results.NotFound();
+    }
+
+    if (!string.IsNullOrWhiteSpace(request.FirstName))
+    {
+        appUser.FirstName = request.FirstName;
+    }
+    if (!string.IsNullOrWhiteSpace(request.LastName))
+    {
+        appUser.LastName = request.LastName;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new UserProfileDto(
+        appUser.Id,
+        appUser.Email,
+        appUser.FirstName,
+        appUser.LastName,
+        appUser.FullName
+    ));
 });
 
 app.MapPost("/api/logout", async (Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> signInManager) =>
@@ -368,6 +439,415 @@ app.MapPut("/api/admin/users/{id}", async (
     });
 });
 
+// ========== BOOKING ENDPOINTS ==========
+
+// Create a new booking (supports guest checkout)
+app.MapPost("/api/bookings", async (
+    CreateBookingRequest request,
+    ApplicationDbContext db,
+    ClaimsPrincipal user,
+    IEmailSender<ApplicationUser> emailSender) =>
+{
+    if (request.Items == null || request.Items.Count == 0)
+    {
+        return Results.BadRequest(new { message = "At least one booking item is required" });
+    }
+
+    string? userId = null;
+    string customerEmail;
+    string customerName;
+
+    // If authenticated, use user profile data
+    if (user.Identity?.IsAuthenticated == true)
+    {
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var appUser = await db.Users.FindAsync(userId);
+        if (appUser != null)
+        {
+            customerEmail = appUser.Email ?? request.CustomerEmail ?? "";
+            customerName = !string.IsNullOrWhiteSpace(appUser.FullName) 
+                ? appUser.FullName 
+                : request.CustomerName ?? "";
+        }
+        else
+        {
+            customerEmail = request.CustomerEmail ?? "";
+            customerName = request.CustomerName ?? "";
+        }
+    }
+    else
+    {
+        // Guest checkout - require email and name
+        if (string.IsNullOrWhiteSpace(request.CustomerEmail) || string.IsNullOrWhiteSpace(request.CustomerName))
+        {
+            return Results.BadRequest(new { message = "Customer email and name are required for guest checkout" });
+        }
+        customerEmail = request.CustomerEmail;
+        customerName = request.CustomerName;
+    }
+
+    var booking = new Booking
+    {
+        UserId = userId,
+        CustomerEmail = customerEmail,
+        CustomerName = customerName,
+        TotalAmount = request.Items.Sum(i => i.Price),
+        Status = BookingStatus.Confirmed,
+        ConfirmedAt = DateTime.UtcNow,
+        PaymentReference = request.PaymentReference
+    };
+
+    foreach (var item in request.Items)
+    {
+        booking.Items.Add(new BookingItem
+        {
+            Type = Enum.Parse<BookingItemType>(item.Type, true),
+            Title = item.Title,
+            Details = item.Details,
+            Price = item.Price,
+            ImageUrl = item.ImageUrl
+        });
+    }
+
+    db.Bookings.Add(booking);
+    await db.SaveChangesAsync();
+
+    // Send confirmation email
+    try
+    {
+        var itemsList = string.Join("\n", booking.Items.Select(i => $"- {i.Title}: ${i.Price:F2}"));
+        var emailBody = $@"
+Dear {booking.CustomerName},
+
+Thank you for your booking with MyTravel!
+
+Booking Reference: #{booking.Id}
+Total Amount: ${booking.TotalAmount:F2}
+
+Items:
+{itemsList}
+
+Your booking has been confirmed. We look forward to serving you!
+
+Best regards,
+The MyTravel Team
+";
+        await emailSender.SendConfirmationLinkAsync(
+            new ApplicationUser { Email = booking.CustomerEmail, UserName = booking.CustomerName },
+            booking.CustomerEmail,
+            emailBody);
+    }
+    catch
+    {
+        // Email sending failed, but booking was created successfully
+    }
+
+    return Results.Created($"/api/bookings/{booking.Id}", new
+    {
+        id = booking.Id,
+        message = "Booking created successfully",
+        totalAmount = booking.TotalAmount,
+        status = booking.Status.ToString()
+    });
+});
+
+// Get current user's bookings
+app.MapGet("/api/bookings", async (
+    ApplicationDbContext db,
+    ClaimsPrincipal user) =>
+{
+    if (user.Identity?.IsAuthenticated != true)
+    {
+        return Results.Ok(new { bookings = Array.Empty<object>() });
+    }
+
+    var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (string.IsNullOrEmpty(userId))
+    {
+        return Results.Ok(new { bookings = Array.Empty<object>() });
+    }
+
+    var bookings = await db.Bookings
+        .Where(b => b.UserId == userId)
+        .OrderByDescending(b => b.CreatedAt)
+        .Select(b => new BookingDto(
+            b.Id,
+            b.CustomerEmail,
+            b.CustomerName,
+            b.TotalAmount,
+            b.Status.ToString(),
+            b.CreatedAt,
+            b.ConfirmedAt,
+            b.CancelledAt,
+            b.PaymentReference,
+            b.Items.Select(i => new BookingItemDto(
+                i.Id,
+                i.Type.ToString(),
+                i.Title,
+                i.Details,
+                i.Price,
+                i.ImageUrl
+            )).ToList()
+        ))
+        .ToListAsync();
+
+    return Results.Ok(new { bookings });
+});
+
+// Get booking by ID
+app.MapGet("/api/bookings/{id:int}", async (
+    int id,
+    ApplicationDbContext db,
+    ClaimsPrincipal user) =>
+{
+    var booking = await db.Bookings
+        .Include(b => b.Items)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+    if (booking == null)
+    {
+        return Results.NotFound(new { message = "Booking not found" });
+    }
+
+    // Only allow access to own bookings for non-admin users
+    if (user.Identity?.IsAuthenticated == true)
+    {
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (booking.UserId != null && booking.UserId != userId)
+        {
+            return Results.Forbid();
+        }
+    }
+
+    return Results.Ok(new BookingDto(
+        booking.Id,
+        booking.CustomerEmail,
+        booking.CustomerName,
+        booking.TotalAmount,
+        booking.Status.ToString(),
+        booking.CreatedAt,
+        booking.ConfirmedAt,
+        booking.CancelledAt,
+        booking.PaymentReference,
+        booking.Items.Select(i => new BookingItemDto(
+            i.Id,
+            i.Type.ToString(),
+            i.Title,
+            i.Details,
+            i.Price,
+            i.ImageUrl
+        )).ToList()
+    ));
+});
+
+// ========== ADMIN BOOKING ENDPOINTS ==========
+
+// Get all bookings (admin)
+app.MapGet("/api/admin/bookings", async (
+    ApplicationDbContext db,
+    HttpContext httpContext,
+    int page = 1,
+    int pageSize = 10,
+    string? search = null,
+    string? status = null,
+    string sortBy = "createdAt",
+    string sortOrder = "desc") =>
+{
+    var adminCookie = httpContext.Request.Cookies["admin_session"];
+    if (adminCookie != "authenticated")
+    {
+        return Results.Unauthorized();
+    }
+
+    var query = db.Bookings.Include(b => b.Items).AsQueryable();
+
+    // Apply search filter
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        query = query.Where(b =>
+            b.CustomerEmail.Contains(search) ||
+            b.CustomerName.Contains(search) ||
+            b.Id.ToString() == search);
+    }
+
+    // Apply status filter
+    if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BookingStatus>(status, true, out var statusEnum))
+    {
+        query = query.Where(b => b.Status == statusEnum);
+    }
+
+    // Apply sorting
+    query = sortBy.ToLower() switch
+    {
+        "customername" => sortOrder == "asc" ? query.OrderBy(b => b.CustomerName) : query.OrderByDescending(b => b.CustomerName),
+        "customeremail" => sortOrder == "asc" ? query.OrderBy(b => b.CustomerEmail) : query.OrderByDescending(b => b.CustomerEmail),
+        "totalamount" => sortOrder == "asc" ? query.OrderBy(b => b.TotalAmount) : query.OrderByDescending(b => b.TotalAmount),
+        "status" => sortOrder == "asc" ? query.OrderBy(b => b.Status) : query.OrderByDescending(b => b.Status),
+        _ => sortOrder == "asc" ? query.OrderBy(b => b.CreatedAt) : query.OrderByDescending(b => b.CreatedAt)
+    };
+
+    var totalCount = await query.CountAsync();
+    var bookings = await query
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(b => new BookingDto(
+            b.Id,
+            b.CustomerEmail,
+            b.CustomerName,
+            b.TotalAmount,
+            b.Status.ToString(),
+            b.CreatedAt,
+            b.ConfirmedAt,
+            b.CancelledAt,
+            b.PaymentReference,
+            b.Items.Select(i => new BookingItemDto(
+                i.Id,
+                i.Type.ToString(),
+                i.Title,
+                i.Details,
+                i.Price,
+                i.ImageUrl
+            )).ToList()
+        ))
+        .ToListAsync();
+
+    return Results.Ok(new
+    {
+        bookings,
+        totalCount,
+        page,
+        pageSize,
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+    });
+});
+
+// Get booking by ID (admin)
+app.MapGet("/api/admin/bookings/{id:int}", async (
+    int id,
+    ApplicationDbContext db,
+    HttpContext httpContext) =>
+{
+    var adminCookie = httpContext.Request.Cookies["admin_session"];
+    if (adminCookie != "authenticated")
+    {
+        return Results.Unauthorized();
+    }
+
+    var booking = await db.Bookings
+        .Include(b => b.Items)
+        .FirstOrDefaultAsync(b => b.Id == id);
+
+    if (booking == null)
+    {
+        return Results.NotFound(new { message = "Booking not found" });
+    }
+
+    return Results.Ok(new BookingDto(
+        booking.Id,
+        booking.CustomerEmail,
+        booking.CustomerName,
+        booking.TotalAmount,
+        booking.Status.ToString(),
+        booking.CreatedAt,
+        booking.ConfirmedAt,
+        booking.CancelledAt,
+        booking.PaymentReference,
+        booking.Items.Select(i => new BookingItemDto(
+            i.Id,
+            i.Type.ToString(),
+            i.Title,
+            i.Details,
+            i.Price,
+            i.ImageUrl
+        )).ToList()
+    ));
+});
+
+// Update booking status (admin)
+app.MapPatch("/api/admin/bookings/{id:int}/status", async (
+    int id,
+    UpdateBookingStatusRequest request,
+    ApplicationDbContext db,
+    HttpContext httpContext) =>
+{
+    var adminCookie = httpContext.Request.Cookies["admin_session"];
+    if (adminCookie != "authenticated")
+    {
+        return Results.Unauthorized();
+    }
+
+    var booking = await db.Bookings.FindAsync(id);
+    if (booking == null)
+    {
+        return Results.NotFound(new { message = "Booking not found" });
+    }
+
+    if (!Enum.TryParse<BookingStatus>(request.Status, true, out var newStatus))
+    {
+        return Results.BadRequest(new { message = "Invalid status value" });
+    }
+
+    booking.Status = newStatus;
+
+    // Update timestamps based on status
+    if (newStatus == BookingStatus.Confirmed && booking.ConfirmedAt == null)
+    {
+        booking.ConfirmedAt = DateTime.UtcNow;
+    }
+    else if (newStatus == BookingStatus.Cancelled && booking.CancelledAt == null)
+    {
+        booking.CancelledAt = DateTime.UtcNow;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        message = "Booking status updated successfully",
+        id = booking.Id,
+        status = booking.Status.ToString()
+    });
+});
+
+// Get booking statistics (admin)
+app.MapGet("/api/admin/bookings/stats", async (
+    ApplicationDbContext db,
+    HttpContext httpContext) =>
+{
+    var adminCookie = httpContext.Request.Cookies["admin_session"];
+    if (adminCookie != "authenticated")
+    {
+        return Results.Unauthorized();
+    }
+
+    var totalBookings = await db.Bookings.CountAsync();
+    var pendingBookings = await db.Bookings.CountAsync(b => b.Status == BookingStatus.Pending);
+    var confirmedBookings = await db.Bookings.CountAsync(b => b.Status == BookingStatus.Confirmed);
+    var cancelledBookings = await db.Bookings.CountAsync(b => b.Status == BookingStatus.Cancelled);
+    var completedBookings = await db.Bookings.CountAsync(b => b.Status == BookingStatus.Completed);
+    
+    var totalRevenue = await db.Bookings
+        .Where(b => b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Completed)
+        .SumAsync(b => b.TotalAmount);
+    
+    var bookingsToday = await db.Bookings.CountAsync(b => b.CreatedAt.Date == DateTime.UtcNow.Date);
+    var bookingsThisWeek = await db.Bookings.CountAsync(b => b.CreatedAt >= DateTime.UtcNow.AddDays(-7));
+    var bookingsThisMonth = await db.Bookings.CountAsync(b => b.CreatedAt >= DateTime.UtcNow.AddDays(-30));
+
+    return Results.Ok(new
+    {
+        totalBookings,
+        pendingBookings,
+        confirmedBookings,
+        cancelledBookings,
+        completedBookings,
+        totalRevenue,
+        bookingsToday,
+        bookingsThisWeek,
+        bookingsThisMonth
+    });
+});
+
 app.UseDefaultFiles();
 app.MapStaticAssets();
 
@@ -422,4 +902,58 @@ internal record UpdateUserRequest(
     string? UserName,
     bool? IsActive,
     bool? EmailConfirmed
+);
+
+// Booking DTOs
+internal record CreateBookingRequest(
+    string? CustomerEmail,
+    string? CustomerName,
+    string? PaymentReference,
+    List<CreateBookingItemRequest> Items
+);
+
+internal record CreateBookingItemRequest(
+    string Type,
+    string Title,
+    string Details,
+    decimal Price,
+    string? ImageUrl
+);
+
+internal record BookingDto(
+    int Id,
+    string CustomerEmail,
+    string CustomerName,
+    decimal TotalAmount,
+    string Status,
+    DateTime CreatedAt,
+    DateTime? ConfirmedAt,
+    DateTime? CancelledAt,
+    string? PaymentReference,
+    List<BookingItemDto> Items
+);
+
+internal record BookingItemDto(
+    int Id,
+    string Type,
+    string Title,
+    string Details,
+    decimal Price,
+    string? ImageUrl
+);
+
+internal record UpdateBookingStatusRequest(string Status);
+
+// User Profile DTOs
+internal record UserProfileDto(
+    string Id,
+    string? Email,
+    string? FirstName,
+    string? LastName,
+    string FullName
+);
+
+internal record UpdateProfileRequest(
+    string? FirstName,
+    string? LastName
 );

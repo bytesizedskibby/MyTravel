@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useCart } from "@/context/cart-context";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -7,24 +8,105 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Plane, Hotel, Map as MapIcon, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plane, Hotel, Map as MapIcon, CreditCard, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+type UserProfile = {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string;
+};
+
+type BookingResponse = {
+  id: number;
+  message: string;
+  totalAmount: number;
+  status: string;
+};
 
 export default function Checkout() {
   const { items, total, clearCart } = useCart();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [bookingId, setBookingId] = useState<number | null>(null);
 
   // Form State
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [cardError, setCardError] = useState<string | null>(null);
 
-  if (items.length === 0 && !success) {
+  // Fetch user profile if logged in
+  const { data: userProfile, isLoading: profileLoading } = useQuery<UserProfile>({
+    queryKey: ["/api/user/profile"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/profile", { credentials: "include" });
+      if (!res.ok) throw new Error("Not authenticated");
+      return res.json();
+    },
+    retry: false,
+  });
+
+  const isLoggedIn = !!userProfile;
+
+  // Auto-fill form when user profile loads
+  useEffect(() => {
+    if (userProfile) {
+      if (userProfile.fullName) setName(userProfile.fullName);
+      if (userProfile.email) setEmail(userProfile.email);
+    }
+  }, [userProfile]);
+
+  // Booking mutation
+  const bookingMutation = useMutation<BookingResponse, Error, { paymentReference: string }>({
+    mutationFn: async ({ paymentReference }) => {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          customerEmail: isLoggedIn ? undefined : email,
+          customerName: isLoggedIn ? undefined : name,
+          paymentReference,
+          items: items.map(item => ({
+            type: item.type,
+            title: item.title,
+            details: item.details,
+            price: item.price,
+            imageUrl: item.image
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create booking");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setBookingId(data.id);
+      clearCart();
+      toast({
+        title: "Payment Successful!",
+        description: `Booking #${data.id} confirmed. Check your email for the itinerary.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Booking Error",
+        description: error.message || "Payment processed but booking failed. Please contact support.",
+      });
+    },
+  });
+
+  if (items.length === 0 && !bookingMutation.isSuccess) {
     return (
       <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
@@ -36,53 +118,47 @@ export default function Checkout() {
     );
   }
 
-  const handlePayment = (e: React.FormEvent) => {
+  const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsProcessing(true);
-    setError(null);
+    setCardError(null);
 
-    // Mock Payment Logic
-    setTimeout(() => {
-      // Remove spaces for validation
-      const cleanCardNumber = cardNumber.replace(/\s/g, "");
+    // Remove spaces for validation
+    const cleanCardNumber = cardNumber.replace(/\s/g, "");
 
-      if (cleanCardNumber === "4242424242424242") {
-        // Success Scenario
-        setSuccess(true);
-        clearCart();
-        toast({
-          title: "Payment Successful!",
-          description: "Your booking has been confirmed. Check your email for the itinerary.",
-        });
-      } else if (cleanCardNumber === "4000000000000000") {
-        // Failure Scenario
-        setError("Card declined. Please try a different payment method.");
-        toast({
-          variant: "destructive",
-          title: "Payment Failed",
-          description: "Your card was declined by the bank.",
-        });
-      } else {
-        // Default Success for other numbers (or make it fail, but let's be nice for testing unless specific fail card used)
-        // Actually, let's make it fail if not the success card to force using the test card
-        if (cleanCardNumber.startsWith("42")) {
-             setSuccess(true);
-             clearCart();
-        } else {
-             setError("Invalid card number for testing. Use 4242 4242 4242 4242 for success.");
-        }
-      }
-      setIsProcessing(false);
-    }, 2000);
+    // Simulate card processing delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Mock card validation
+    if (cleanCardNumber === "4000000000000000") {
+      setCardError("Card declined. Please try a different payment method.");
+      toast({
+        variant: "destructive",
+        title: "Payment Failed",
+        description: "Your card was declined by the bank.",
+      });
+      return;
+    }
+    
+    if (cleanCardNumber !== "4242424242424242" && !cleanCardNumber.startsWith("42")) {
+      setCardError("Invalid card number for testing. Use 4242 4242 4242 4242 for success.");
+      return;
+    }
+
+    // Card is valid, create booking
+    const paymentReference = `PAY-${Date.now()}`;
+    bookingMutation.mutate({ paymentReference });
   };
 
-  if (success) {
+  if (bookingMutation.isSuccess) {
     return (
       <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in zoom-in duration-500">
         <div className="bg-green-50 dark:bg-green-900/20 p-8 rounded-full mb-6">
           <CheckCircle2 className="h-16 w-16 text-green-600 dark:text-green-400" />
         </div>
         <h1 className="text-3xl font-bold mb-2">Booking Confirmed!</h1>
+        {bookingId && (
+          <p className="text-lg font-medium text-primary mb-2">Booking Reference: #{bookingId}</p>
+        )}
         <p className="text-muted-foreground text-center max-w-md mb-8">
           Thank you for your purchase. Your itinerary and receipt have been sent to your email.
         </p>
@@ -93,6 +169,9 @@ export default function Checkout() {
       </div>
     );
   }
+
+  const isProcessing = bookingMutation.isPending;
+  const error = cardError || (bookingMutation.isError ? bookingMutation.error.message : null);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -133,7 +212,11 @@ export default function Checkout() {
           <Card>
             <CardHeader>
               <CardTitle>Payment Details</CardTitle>
-              <CardDescription>Enter your payment information to complete the booking.</CardDescription>
+              <CardDescription>
+                {isLoggedIn 
+                  ? `Booking as ${userProfile?.fullName || userProfile?.email}`
+                  : "Enter your payment information to complete the booking."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePayment} className="space-y-6">
@@ -145,16 +228,37 @@ export default function Checkout() {
                   </Alert>
                 )}
                 
-                <div className="space-y-2">
-                  <Label htmlFor="name">Cardholder Name</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="John Doe" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required 
-                  />
-                </div>
+                {/* Show customer info fields only for guests */}
+                {!isLoggedIn && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input 
+                          id="name" 
+                          placeholder="John Doe" 
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required 
+                          disabled={profileLoading}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input 
+                          id="email" 
+                          type="email"
+                          placeholder="john@example.com" 
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required 
+                          disabled={profileLoading}
+                        />
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="card">Card Number</Label>
@@ -201,7 +305,14 @@ export default function Checkout() {
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                  {isProcessing ? "Processing..." : `Pay $${total}`}
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Pay $${total}`
+                  )}
                 </Button>
               </form>
             </CardContent>

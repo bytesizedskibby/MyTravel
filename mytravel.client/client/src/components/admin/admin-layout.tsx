@@ -50,7 +50,6 @@ const navItems = [
     title: "Bookings",
     url: "/admin/bookings",
     icon: CalendarCheck,
-    badge: "Coming Soon",
   },
   {
     title: "Blog Management",
