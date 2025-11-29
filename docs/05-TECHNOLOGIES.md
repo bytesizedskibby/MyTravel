@@ -223,7 +223,8 @@ The backend is built on ASP.NET Core with Entity Framework Core for data access.
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| **Microsoft.AspNetCore.OpenApi** | 10.0.0 | OpenAPI/Swagger support for API documentation. Automatically generates API documentation from endpoint definitions. |
+| **Scalar.AspNetCore** | 2.11.0 | Modern, beautiful API documentation UI for OpenAPI specifications. Provides an interactive interface for exploring and testing API endpoints. |
+| **Microsoft.AspNetCore.OpenApi** | 10.0.0 | OpenAPI/Swagger support for API documentation. Automatically generates API documentation from endpoint definitions. Works with Scalar for interactive documentation. |
 
 ### Development Tools
 

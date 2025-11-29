@@ -88,7 +88,7 @@ Once the application is running, you can access it at the following URLs:
 |---------|-----|-------------|
 | Frontend | http://localhost:49764 | Main application interface |
 | Backend API | http://localhost:5083 | API endpoints |
-| Swagger UI | http://localhost:5083/swagger | API documentation (development only) |
+| Scalar API Docs | http://localhost:5083/scalar/v1 | Interactive API documentation (development only) |
 
 The frontend development server proxies API requests to the backend, so you can interact with the application entirely through the frontend URL during development.
 

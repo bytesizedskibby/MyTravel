@@ -9,6 +9,17 @@ Development: http://localhost:5083/api
 Production: https://your-domain.com/api
 ```
 
+## API Documentation UI
+
+The API includes interactive documentation using **Scalar**, a modern OpenAPI documentation interface. In development mode, you can access:
+
+| URL | Description |
+|-----|-------------|
+| `/scalar/v1` | Interactive Scalar API documentation UI |
+| `/openapi/v1.json` | Raw OpenAPI/Swagger specification |
+
+Scalar provides a beautiful, modern interface for exploring and testing API endpoints directly in your browser.
+
 ## Authentication
 
 The API uses cookie-based authentication. There are two authentication mechanisms:

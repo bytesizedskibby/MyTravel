@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MyTravel.Server.Data;
 using MyTravel.Server.Endpoints;
 using MyTravel.Server.Services;
+using Scalar.AspNetCore;
 using System.Collections.Concurrent;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
     
     // Seed database with sample data
     await DbSeeder.SeedAsync(app.Services);
