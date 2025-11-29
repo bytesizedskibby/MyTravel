@@ -1,6 +1,6 @@
-# API Reference
+# Appendix A: API Reference
 
-This document provides comprehensive documentation for all API endpoints available in the MyTravel application. The API follows RESTful conventions and returns JSON responses.
+This appendix provides comprehensive documentation for all API endpoints available in the MyTravel application. The API follows RESTful conventions and returns JSON responses.
 
 ## Base URL
 

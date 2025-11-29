@@ -21,10 +21,10 @@ Below the hero, the page highlights top travel destinations with visually appeal
 | ![Homepage Hero](./screenshots/homepage-hero.png) | ![Featured Destinations](./screenshots/homepage-destinations.png) |
 | *Hero with tagline and search* | *Top destination cards* |
 
-| Testimonials | Promotional Offers |
+| Testimonials | Call to Action Card |
 |:------------:|:------------------:|
 | ![Testimonials](./screenshots/homepage-testimonials.png) | ![Promotions](./screenshots/homepage-promotions.png) |
-| *User reviews and ratings* | *Seasonal deals and CTAs* |
+| *User reviews and ratings* | *Call to Action Card* |
 
 ### User Registration and Login
 
@@ -88,21 +88,21 @@ The page offers robust filtering capabilities to help users find their ideal des
 
 **Route:** `/destinations/:id`
 
-Individual destination pages provide in-depth information about a specific location. The page opens with a gallery of high-quality images showcasing the destination's highlights. Detailed descriptions cover the location's history, culture, climate, and best times to visit. User reviews and ratings provide social proof and authentic traveler perspectives.
+Individual destination pages provide in-depth information about a specific location. The page opens with a gallery of high-quality images showcasing the destination's highlights. Detailed descriptions cover the location's history, culture, climate, and best times to visit.
 
 Available activities are listed with descriptions and pricing, allowing users to plan their experiences. Accommodation options range from budget-friendly to luxury establishments. Users can add flights, hotels, or guided tours to their cart directly from this page, streamlining the booking process.
 
 #### Screenshots
 
-| Image Gallery | Description & Reviews |
+| Image Gallery | Description |
 |:-------------:|:---------------------:|
 | ![Destination Gallery](./screenshots/destination-gallery.png) | ![Destination Info](./screenshots/destination-info.png) |
-| *High-quality destination images* | *Details and user reviews* |
+| *High-quality destination images* | *Details* |
 
-| Available Activities | Booking Options |
-|:--------------------:|:---------------:|
-| ![Activities List](./screenshots/destination-activities.png) | ![Add to Cart](./screenshots/destination-booking.png) |
-| *Tours and experiences* | *Flight, hotel, and tour selection* |
+| Available Activities and Map |
+|:--------------------:|
+| ![Activities List](./screenshots/destination-activities.png) |
+| *Tours and experiences* |
 
 ### Itinerary Planner
 
@@ -110,7 +110,7 @@ Available activities are listed with descriptions and pricing, allowing users to
 
 *"Plan your dream trip effortlessly."*
 
-The itinerary planner is an interactive tool that empowers authenticated users to create custom travel itineraries tailored to their preferences. The interface enables users to select places, accommodations, and activities, then organize them into a coherent travel plan.
+The itinerary planner is an interactive tool that empowers authenticated (registered) users to create custom travel itineraries tailored to their preferences. The interface enables users to select places, accommodations, and activities, then organize them into a coherent travel plan.
 
 The drag-and-drop functionality, powered by the dnd-kit library, allows users to easily arrange activities across different days of their trip. Users can reorder items, move activities between days, and visualize their complete journey timeline. The planner calculates estimated travel times between locations and provides running cost totals as items are added or removed.
 
@@ -119,25 +119,19 @@ The drag-and-drop functionality, powered by the dnd-kit library, allows users to
 - Day-by-day activity organization
 - Estimated travel time calculations
 - Running cost totals and budget tracking
-- Integration with shopping cart
-- Save and edit itineraries
+- Export PDF
 
 #### Screenshots
 
-| Empty Planner | Adding Activities |
+| Planner Page | Adding Activities |
 |:-------------:|:-----------------:|
-| ![Empty Planner](./screenshots/planner-empty.png) | ![Adding Items](./screenshots/planner-adding.png) |
-| *Initial planner state* | *Selecting activities to add* |
+| ![Planner](./screenshots/planner-page.png) | ![Adding Items](./screenshots/planner-adding.png) |
+| *Planner Header* | *Selecting activities to add* |
 
-| Drag and Drop | Cost Summary |
-|:-------------:|:------------:|
-| ![Drag Drop](./screenshots/planner-dragdrop.png) | ![Cost Tracking](./screenshots/planner-costs.png) |
-| *Reorganizing activities* | *Budget and time estimates* |
-
-| Multi-Day Itinerary | Completed Plan |
-|:-------------------:|:--------------:|
-| ![Multi-Day](./screenshots/planner-multiday.png) | ![Complete Itinerary](./screenshots/planner-complete.png) |
-| *Activities across multiple days* | *Final itinerary ready for booking* |
+| Itinerary |
+|:-------------------:|
+| ![Multi-Day](./screenshots/planner-multiday.png) |
+| *Activities*|
 
 ### Booking System
 
@@ -188,10 +182,10 @@ On individual destination pages, maps display the specific location along with n
 
 #### Screenshots
 
-| World Map View | Destination Markers |
-|:--------------:|:-------------------:|
-| ![World Map](./screenshots/map-world.png) | ![Map Markers](./screenshots/map-markers.png) |
-| *Global destination overview* | *Clickable location markers* |
+| World Map View |
+|:--------------:|
+| ![World Map](./screenshots/map-world.png) |
+| *Global destination overview* |
 
 | Marker Popup | Destination Map |
 |:------------:|:---------------:|
@@ -232,21 +226,24 @@ Authenticated users can contribute their own travel stories through the blog edi
 | ![Blog Post](./screenshots/blog-post.png) | ![Blog Content](./screenshots/blog-content.png) |
 | *Full article view* | *Formatted text and images* |
 
-| Blog Editor | Editor Toolbar |
-|:-----------:|:--------------:|
-| ![Blog Editor](./screenshots/blog-editor-full.png) | ![Editor Tools](./screenshots/blog-editor-toolbar.png) |
-| *Lexical rich text editor* | *Formatting options* |
+| Blog Editor |
+|:-----------:|
+| ![Blog Editor](./screenshots/blog-editor-full.png) |
+| *Lexical rich text editor* |
 
-| Draft Preview | Publishing |
-|:-------------:|:----------:|
-| ![Draft Preview](./screenshots/blog-preview.png) | ![Publish Dialog](./screenshots/blog-publish.png) |
-| *Preview before publishing* | *Publication options* |
 
 ### Not Found
 
 **Route:** `*` (catch-all)
 
 A custom 404 page is displayed when users navigate to a route that does not exist. The page provides a friendly message and links back to the homepage and other main sections of the site, helping users recover from navigation errors gracefully.
+
+#### Screenshots
+
+| 404 Page |
+|:--------:|
+| ![404 Page](./screenshots/error-404.png) |
+| *Page not found with navigation options* |
 
 ## Administrative Pages
 
@@ -282,15 +279,11 @@ Charts built with Recharts visualize trends over time, helping administrators id
 
 #### Screenshots
 
-| Dashboard Overview | Statistics Cards |
-|:------------------:|:----------------:|
-| ![Dashboard Overview](./screenshots/admin-dashboard-overview.png) | ![Stats Cards](./screenshots/admin-dashboard-stats.png) |
-| *Main admin interface* | *Key metrics at a glance* |
+| Dashboard Overview |
+|:------------------:|
+| ![Dashboard Overview](./screenshots/admin-dashboard-overview.png) |
+| *Main admin interface* |
 
-| Analytics Charts | Recent Activity |
-|:----------------:|:---------------:|
-| ![Charts](./screenshots/admin-dashboard-charts.png) | ![Activity Feed](./screenshots/admin-dashboard-activity.png) |
-| *Trend visualizations* | *Latest user actions* |
 
 ### User Management
 
@@ -310,20 +303,12 @@ Administrators can activate or deactivate accounts as needed for moderation purp
 
 #### Screenshots
 
-| User List | User Search |
-|:---------:|:-----------:|
-| ![User List](./screenshots/admin-users-list.png) | ![User Search](./screenshots/admin-users-search.png) |
-| *Paginated user table* | *Search by name or email* |
+| User List |
+|:---------:|
+| ![User List](./screenshots/admin-users-list.png) |
+| *Paginated user table* |
 
-| User Details | Edit User |
-|:------------:|:---------:|
-| ![User Details](./screenshots/admin-users-details.png) | ![Edit User](./screenshots/admin-users-edit.png) |
-| *Full user profile view* | *Modify user information* |
 
-| Toggle Status | Delete Confirmation |
-|:-------------:|:-------------------:|
-| ![Toggle Status](./screenshots/admin-users-toggle.png) | ![Delete User](./screenshots/admin-users-delete.png) |
-| *Activate/deactivate accounts* | *Delete confirmation dialog* |
 
 ### Booking Management
 
@@ -343,20 +328,11 @@ Administrators can view comprehensive details for each booking including custome
 
 #### Screenshots
 
-| Booking List | Status Filters |
-|:------------:|:--------------:|
-| ![Booking List](./screenshots/admin-bookings-list.png) | ![Status Filter](./screenshots/admin-bookings-filter.png) |
-| *All bookings overview* | *Filter by status* |
+| Booking List |
+|:------------:|
+| ![Booking List](./screenshots/admin-bookings-list.png) |
+| *All bookings overview* |
 
-| Booking Details | Update Status |
-|:---------------:|:-------------:|
-| ![Booking Details](./screenshots/admin-bookings-details.png) | ![Update Status](./screenshots/admin-bookings-status.png) |
-| *Full booking information* | *Change booking status* |
-
-| Revenue Stats | Search Bookings |
-|:-------------:|:---------------:|
-| ![Revenue](./screenshots/admin-bookings-revenue.png) | ![Search](./screenshots/admin-bookings-search.png) |
-| *Financial metrics* | *Find specific bookings* |
 
 ### Blog Management
 
@@ -376,20 +352,10 @@ Statistics display engagement metrics for blog content, helping administrators u
 
 #### Screenshots
 
-| Post List | Draft Management |
-|:---------:|:----------------:|
-| ![Post List](./screenshots/admin-blog-list.png) | ![Drafts](./screenshots/admin-blog-drafts.png) |
-| *All posts overview* | *Pending draft posts* |
-
-| Edit Post | Toggle Publish |
-|:---------:|:--------------:|
-| ![Edit Post](./screenshots/admin-blog-edit.png) | ![Toggle Publish](./screenshots/admin-blog-toggle.png) |
-| *Modify post content* | *Publish/unpublish posts* |
-
-| Blog Stats | Delete Confirmation |
-|:----------:|:-------------------:|
-| ![Blog Stats](./screenshots/admin-blog-stats.png) | ![Delete Post](./screenshots/admin-blog-delete.png) |
-| *Engagement metrics* | *Delete confirmation* |
+| Post List |
+|:---------:|
+| ![Post List](./screenshots/admin-blog-list.png) |
+| *All posts overview* |
 
 ## Search and Filtering
 
@@ -411,35 +377,12 @@ Filters can be combined to narrow results precisely. Filter selections are prese
 
 #### Screenshots
 
-| Global Search | Search Suggestions |
-|:-------------:|:------------------:|
-| ![Global Search](./screenshots/search-global.png) | ![Suggestions](./screenshots/search-suggestions.png) |
-| *Search from navigation* | *Real-time suggestions* |
-
-| Advanced Filters | Combined Filters |
-|:----------------:|:----------------:|
-| ![Advanced Filters](./screenshots/search-advanced.png) | ![Combined](./screenshots/search-combined.png) |
-| *Multiple filter options* | *Refined search results* |
+| Filter Panel | Search Results |
+|:------------:|:--------------:|
+| ![Filter Options](./screenshots/destinations-filters.png) | ![Search Results](./screenshots/destinations-search.png) |
+| *Continent, activity, and budget filters* | *Filtered destination results* |
 
 ## Core Features
-
-### Shopping Cart
-
-The shopping cart is accessible from any page via a slide-out sheet component triggered by the cart icon in the navigation. It displays all items the user has added, including flights, hotels, and tours with their respective details, dates, and prices.
-
-Users can review their selections, adjust quantities where applicable, remove unwanted items, and see a running total of their planned expenditure. The cart persists across sessions for authenticated users, ensuring selections are not lost. A prominent checkout button guides users to complete their booking when ready.
-
-#### Screenshots
-
-| Cart Closed | Cart Open |
-|:-----------:|:---------:|
-| ![Cart Icon](./screenshots/cart-icon.png) | ![Cart Sheet](./screenshots/cart-open.png) |
-| *Cart indicator in nav* | *Slide-out cart panel* |
-
-| Cart Items | Cart Actions |
-|:----------:|:------------:|
-| ![Cart Items](./screenshots/cart-items.png) | ![Remove Item](./screenshots/cart-remove.png) |
-| *Itemized service list* | *Remove and adjust items* |
 
 ### Responsive Design and Styling
 
@@ -473,23 +416,6 @@ Toast notifications provide non-intrusive feedback for both successful actions a
 
 For detailed information about error handling implementation, see [Error Handling](./07-ERROR-HANDLING.md).
 
-#### Screenshots
-
-| Form Validation | Network Error |
-|:---------------:|:-------------:|
-| ![Form Error](./screenshots/error-form.png) | ![Network Error](./screenshots/error-network.png) |
-| *Inline validation messages* | *Connection error handling* |
-
-| Toast Success | Toast Error |
-|:-------------:|:-----------:|
-| ![Success Toast](./screenshots/error-toast-success.png) | ![Error Toast](./screenshots/error-toast-error.png) |
-| *Action confirmation* | *Error notification* |
-
-| 404 Page | Server Error |
-|:--------:|:------------:|
-| ![404 Page](./screenshots/error-404.png) | ![Server Error](./screenshots/error-server.png) |
-| *Page not found* | *Server error message* |
-
 ### Analytics Integration
 
 The application integrates PostHog analytics to track user behavior and optimize the platform experience. Analytics capture page views, feature usage patterns, and conversion metrics while respecting user privacy.
@@ -505,10 +431,10 @@ Analytics data informs decisions about content prioritization, feature developme
 
 #### Screenshots
 
-| Page Analytics | User Flow |
-|:--------------:|:---------:|
-| ![Page Analytics](./screenshots/analytics-pages.png) | ![User Flow](./screenshots/analytics-flow.png) |
-| *Page view tracking* | *User journey visualization* |
+| Page Analytics |
+|:--------------:|
+| ![Page Analytics](./screenshots/analytics-pages.png) |
+| *Page view tracking* |
 
 ### Real-time Form Validation
 

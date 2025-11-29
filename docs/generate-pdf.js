@@ -4,6 +4,7 @@ const puppeteer = require('puppeteer');
 const markdownIt = require('markdown-it');
 const https = require('https');
 const http = require('http');
+const { PDFDocument } = require('pdf-lib');
 
 // Initialize markdown-it with options
 const md = markdownIt({
@@ -20,8 +21,8 @@ const documents = [
     { file: '03-FEATURES.md', title: 'Features' },
     { file: '04-ARCHITECTURE.md', title: 'Architecture' },
     { file: '05-TECHNOLOGIES.md', title: 'Technologies' },
-    { file: '06-API.md', title: 'API Reference' },
-    { file: '07-ERROR-HANDLING.md', title: 'Error Handling' }
+    { file: '07-ERROR-HANDLING.md', title: 'Error Handling' },
+    { file: '06-API.md', title: 'Appendix A: API Reference', isAppendix: true }
 ];
 
 // Convert image to base64 data URI
@@ -32,9 +33,9 @@ function imageToBase64(imagePath) {
             const imageBuffer = fs.readFileSync(absolutePath);
             const base64 = imageBuffer.toString('base64');
             const ext = path.extname(imagePath).toLowerCase();
-            const mimeType = ext === '.png' ? 'image/png' : 
-                           ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 
-                           ext === '.gif' ? 'image/gif' : 'image/png';
+            const mimeType = ext === '.png' ? 'image/png' :
+                ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                    ext === '.gif' ? 'image/gif' : 'image/png';
             return `data:${mimeType};base64,${base64}`;
         }
     } catch (err) {
@@ -47,19 +48,19 @@ function imageToBase64(imagePath) {
 function fetchImageAsBase64(url) {
     return new Promise((resolve, reject) => {
         const protocol = url.startsWith('https') ? https : http;
-        
+
         const request = protocol.get(url, { timeout: 30000 }, (response) => {
             if (response.statusCode === 301 || response.statusCode === 302) {
                 // Follow redirect
                 fetchImageAsBase64(response.headers.location).then(resolve).catch(reject);
                 return;
             }
-            
+
             if (response.statusCode !== 200) {
                 reject(new Error(`HTTP ${response.statusCode}`));
                 return;
             }
-            
+
             const chunks = [];
             response.on('data', chunk => chunks.push(chunk));
             response.on('end', () => {
@@ -70,7 +71,7 @@ function fetchImageAsBase64(url) {
             });
             response.on('error', reject);
         });
-        
+
         request.on('error', reject);
         request.on('timeout', () => {
             request.destroy();
@@ -86,7 +87,7 @@ function getMermaidImageUrl(mermaidCode) {
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
-    
+
     return `https://mermaid.ink/img/${encoded}?theme=default&bgColor=white`;
 }
 
@@ -96,19 +97,19 @@ async function processMermaidDiagrams(content) {
     let match;
     let diagramCount = 0;
     const replacements = [];
-    
+
     while ((match = mermaidRegex.exec(content)) !== null) {
         diagramCount++;
         const mermaidCode = match[1].trim();
         const fullMatch = match[0];
         const startIndex = match.index;
-        
+
         console.log(`  Converting Mermaid diagram ${diagramCount}...`);
-        
+
         try {
             const imageUrl = getMermaidImageUrl(mermaidCode);
             const base64Image = await fetchImageAsBase64(imageUrl);
-            
+
             // Create an image tag to replace the mermaid code block
             const imageHtml = `\n\n![Diagram ${diagramCount}](${base64Image})\n\n`;
             replacements.push({ fullMatch, imageHtml, startIndex });
@@ -120,13 +121,13 @@ async function processMermaidDiagrams(content) {
             replacements.push({ fullMatch, imageHtml: placeholder, startIndex });
         }
     }
-    
+
     // Replace from end to start to preserve indices
     replacements.reverse();
     for (const { fullMatch, imageHtml } of replacements) {
         content = content.replace(fullMatch, imageHtml);
     }
-    
+
     return content;
 }
 
@@ -134,10 +135,10 @@ async function processMermaidDiagrams(content) {
 async function processMarkdown(content, docIndex) {
     // Remove the back link at the bottom of each document
     content = content.replace(/---\s*\n\s*\[← Back to Documentation\].*$/gm, '');
-    
+
     // Process Mermaid diagrams first (convert to images)
     content = await processMermaidDiagrams(content);
-    
+
     // Convert image markdown syntax to base64 data URIs BEFORE markdown processing
     content = content.replace(/!\[([^\]]*)\]\(\.\/screenshots\/([^)]+)\)/g, (match, alt, imgFile) => {
         const imgPath = `screenshots/${imgFile}`;
@@ -149,7 +150,7 @@ async function processMarkdown(content, docIndex) {
         console.warn(`    Warning: Image not found: ${imgFile}`);
         return `![${alt}](missing)`;
     });
-    
+
     // Also handle homepage.png in root
     content = content.replace(/!\[([^\]]*)\]\(\.\/([^)]+\.png)\)/g, (match, alt, imgFile) => {
         if (!imgFile.startsWith('screenshots/')) {
@@ -161,36 +162,38 @@ async function processMarkdown(content, docIndex) {
         }
         return match;
     });
-    
+
     // Convert markdown to HTML
     let html = md.render(content);
-    
+
     return html;
 }
 
 // Generate the full HTML document
 async function generateHTML() {
     let sectionsHtml = '';
-    
+
     for (let i = 0; i < documents.length; i++) {
         const doc = documents[i];
         const filePath = path.join(__dirname, doc.file);
-        
+
         console.log(`Processing: ${doc.file}`);
-        
+
         try {
             let content = fs.readFileSync(filePath, 'utf8');
             // Remove markdown fence markers if present
             content = content.replace(/^```+markdown\s*/i, '').replace(/\s*```+$/i, '');
             content = content.replace(/^````+markdown\s*/i, '').replace(/\s*````+$/i, '');
-            
+
             const html = await processMarkdown(content, i);
-            
+
             // Add page break class for all sections except the first
+            // Add appendix class if this is an appendix section
             const pageBreakClass = i > 0 ? 'page-break-before' : '';
-            
+            const appendixClass = doc.isAppendix ? 'appendix-section' : '';
+
             sectionsHtml += `
-                <section class="document-section ${pageBreakClass}" id="section-${i}">
+                <section class="document-section ${pageBreakClass} ${appendixClass}" id="section-${i}" data-is-appendix="${doc.isAppendix || false}">
                     ${html}
                 </section>
             `;
@@ -198,7 +201,7 @@ async function generateHTML() {
             console.error(`Error processing ${doc.file}:`, err.message);
         }
     }
-    
+
     const fullHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -544,45 +547,45 @@ async function generateHTML() {
 </body>
 </html>
     `;
-    
+
     return fullHtml;
 }
 
 // Generate PDF
 async function generatePDF() {
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
     console.log('MyTravel Documentation PDF Generator');
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
     console.log('');
     console.log('Generating HTML content...');
     console.log('');
-    
+
     const html = await generateHTML();
-    
+
     // Save HTML to file
     const htmlPath = path.join(__dirname, 'MyTravel-Documentation.html');
     fs.writeFileSync(htmlPath, html);
     console.log(`\nHTML saved to: ${htmlPath}`);
-    
+
     console.log('\nLaunching browser...');
     const browser = await puppeteer.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security', '--allow-file-access-from-files']
     });
-    
+
     const page = await browser.newPage();
-    
+
     // Set viewport for better rendering
     await page.setViewport({ width: 1200, height: 800 });
-    
+
     // Navigate to the HTML file directly instead of using setContent
     console.log('Loading HTML file...');
     const fileUrl = 'file:///' + htmlPath.replace(/\\/g, '/');
-    await page.goto(fileUrl, { 
+    await page.goto(fileUrl, {
         waitUntil: 'networkidle2',
         timeout: 180000
     });
-    
+
     // Wait for images to load
     await page.evaluate(async () => {
         const images = document.querySelectorAll('img');
@@ -594,13 +597,13 @@ async function generatePDF() {
             });
         }));
     });
-    
+
     // Additional wait for rendering
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     console.log('Generating PDF...');
-    const pdfPath = path.join(__dirname, 'MyTravel-Documentation.pdf');
-    
+    let pdfPath = path.join(__dirname, 'MyTravel-Documentation.pdf');
+
     // Delete old PDF if exists
     if (fs.existsSync(pdfPath)) {
         try {
@@ -611,40 +614,123 @@ async function generatePDF() {
             pdfPath = path.join(__dirname, `MyTravel-Documentation-${timestamp}.pdf`);
         }
     }
-    
-    await page.pdf({
-        path: pdfPath,
-        format: 'A4',
-        printBackground: true,
-        displayHeaderFooter: true,
-        headerTemplate: '<div></div>',
-        footerTemplate: `
-            <div style="font-size: 9pt; width: 100%; text-align: center; color: #666; padding: 10px;">
-                <span>MyTravel Documentation</span>
-                <span style="margin-left: 20px;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
-            </div>
-        `,
-        margin: {
-            top: '0.75in',
-            bottom: '0.75in',
-            left: '0.75in',
-            right: '0.75in'
-        },
-        preferCSSPageSize: false
-    });
-    
-    await browser.close();
-    
+
+    // Find the index where appendix starts
+    const appendixStartIndex = documents.findIndex(doc => doc.isAppendix);
+    const hasAppendix = appendixStartIndex !== -1;
+
+    if (hasAppendix) {
+        // Generate PDF in two parts: main content with footer, appendix without footer
+        console.log('Generating main content PDF (with page numbers)...');
+
+        // Hide appendix sections for main content PDF
+        await page.evaluate((startIdx) => {
+            document.querySelectorAll('.appendix-section').forEach(el => {
+                el.style.display = 'none';
+            });
+        }, appendixStartIndex);
+
+        const mainPdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            displayHeaderFooter: false,
+            margin: {
+                top: '0.75in',
+                bottom: '0.75in',
+                left: '0.75in',
+                right: '0.75in'
+            },
+            preferCSSPageSize: false
+        });
+
+        console.log('Generating appendix PDF (without page numbers)...');
+
+        // Show only appendix sections for appendix PDF
+        await page.evaluate((startIdx) => {
+            // Hide everything first
+            document.querySelectorAll('.document-section').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.querySelector('.cover-page').style.display = 'none';
+            document.querySelector('.toc').style.display = 'none';
+            // Show only appendix sections
+            document.querySelectorAll('.appendix-section').forEach(el => {
+                el.style.display = 'block';
+            });
+        }, appendixStartIndex);
+
+        const appendixPdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            displayHeaderFooter: true,
+            headerTemplate: `<div style="font-size: 9pt; width: 100%; text-align: center; color: #666; padding: 10px;">
+                    <span>MyTravel Documentation Appendix</span>
+                </div>`,
+            margin: {
+                top: '0.75in',
+                bottom: '0.75in',
+                left: '0.75in',
+                right: '0.75in'
+            },
+            preferCSSPageSize: false
+        });
+
+        await browser.close();
+
+        // Merge the two PDFs
+        console.log('Merging PDFs...');
+        const mainPdf = await PDFDocument.load(mainPdfBuffer);
+        const appendixPdf = await PDFDocument.load(appendixPdfBuffer);
+
+        const mergedPdf = await PDFDocument.create();
+
+        // Copy all pages from main PDF
+        const mainPages = await mergedPdf.copyPages(mainPdf, mainPdf.getPageIndices());
+        mainPages.forEach(page => mergedPdf.addPage(page));
+
+        // Copy all pages from appendix PDF
+        const appendixPages = await mergedPdf.copyPages(appendixPdf, appendixPdf.getPageIndices());
+        appendixPages.forEach(page => mergedPdf.addPage(page));
+
+        // Save merged PDF
+        const mergedPdfBytes = await mergedPdf.save();
+        fs.writeFileSync(pdfPath, mergedPdfBytes);
+    } else {
+        // No appendix, generate single PDF with footer
+        await page.pdf({
+            path: pdfPath,
+            format: 'A4',
+            printBackground: true,
+            displayHeaderFooter: true,
+            headerTemplate: '<div></div>',
+            footerTemplate: `
+                <div style="font-size: 9pt; width: 100%; text-align: center; color: #666; padding: 10px;">
+                    <span>MyTravel Documentation</span>
+                    <span style="margin-left: 20px;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+                </div>
+            `,
+            margin: {
+                top: '0.75in',
+                bottom: '0.75in',
+                left: '0.75in',
+                right: '0.75in'
+            },
+            preferCSSPageSize: false
+        });
+
+        await browser.close();
+    }
+
     // Get file size
     const stats = fs.statSync(pdfPath);
     const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-    
+
     console.log('');
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
     console.log('PDF generated successfully!');
     console.log(`Location: ${pdfPath}`);
     console.log(`File size: ${fileSizeMB} MB`);
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
 }
 
 // Run the generator
